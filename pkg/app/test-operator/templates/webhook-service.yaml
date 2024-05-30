@@ -1,0 +1,12 @@
+apiVersion: v1
+kind:       Service
+metadata: {
+  name: #config.metadata.name + "-webhook-service"
+  labels: #config.test-operator.metadata.labels & {
+spec:
+  type: {{ .Values.webhookService.type }}
+  selector:
+    control-plane: controller-manager
+  {{- include "test-operator.selectorLabels" . | nindent 4 }}
+  ports:
+	{{- .Values.webhookService.ports | toYaml | nindent 2 }}

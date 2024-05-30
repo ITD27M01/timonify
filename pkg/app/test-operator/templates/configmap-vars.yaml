@@ -1,0 +1,10 @@
+apiVersion: v1
+kind:       ConfigMap
+metadata: {
+  name: #config.metadata.name + "-configmap-vars"
+  labels: #config.test-operator.metadata.labels & {
+{
+	data: {
+		VAR4: "#config.configmapVars.var4"
+	}
+}

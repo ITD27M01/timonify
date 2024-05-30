@@ -1,0 +1,16 @@
+apiVersion: v1
+kind:       PersistentVolumeClaim
+metadata: {
+  name: #config.metadata.name + "-pvc-lim"
+  labels: #config.test-operator.metadata.labels & {
+{
+	spec: {
+		storageClassName: "#config.pvc.pvcLim.storageClass"
+		accessModes: ["ReadWriteOnce"]
+		resources: {
+			requests: {
+				storage: "#config.pvc.pvcLim.storageRequest"
+			}
+		}
+	}
+}
