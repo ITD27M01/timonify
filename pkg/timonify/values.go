@@ -13,16 +13,34 @@ import (
 
 // Values - represents timoni values.
 type Values struct {
-	// config represents values for config.cue file.
-	config ast.Node
-	// values represents values for values.cue file.
-	values map[string]interface{}
+	// Config represents values for config.cue file.
+	Config *ast.StructLit
+	// Values represents values for values.cue file.
+	Values map[string]interface{}
+}
+
+func NewValues() *Values {
+	return &Values{
+		Config: ast.NewStruct(),
+		Values: make(map[string]interface{}),
+	}
 }
 
 // Merge given values with current instance.
-func (v *Values) Merge(values Values) error {
-	if err := mergo.Merge(v, values, mergo.WithAppendSlice); err != nil {
-		return fmt.Errorf("%w: unable to merge helm values", err)
+func (v *Values) Merge(values *Values) error {
+	if err := mergo.Merge(&v.Values, values.Values, mergo.WithAppendSlice); err != nil {
+		return fmt.Errorf("%w: unable to merge timoni values", err)
+	}
+	mergeStructLits(v.Config, values.Config)
+
+	return nil
+}
+
+func (v *Values) AddConfig(config ast.Expr, name ...string) error {
+	name = toCamelCase(name)
+	err := setNestedCueField(v.Config, config, name...)
+	if err != nil {
+		return fmt.Errorf("%w: unable to set nested cue field: %v", err, name)
 	}
 	return nil
 }
@@ -41,12 +59,19 @@ func (v *Values) Add(config ast.Expr, value interface{}, name ...string) (string
 		value = int64(val)
 	}
 
-	err := setNestedCueField(v.config, config, name...)
+	err := v.AddConfig(config, name...)
 	if err != nil {
 		return "", fmt.Errorf("%w: unable to set config value: %v", err, name)
 	}
 
-	err = unstructured.SetNestedField(v.values, value, name...)
+	switch value := value.(type) {
+	case []string:
+		err = unstructured.SetNestedStringSlice(v.Values, value, name...)
+	case map[string]string:
+		err = unstructured.SetNestedStringMap(v.Values, value, name...)
+	default:
+		err = unstructured.SetNestedField(v.Values, value, name...)
+	}
 	if err != nil {
 		return "", fmt.Errorf("%w: unable to set value: %v", err, name)
 	}
@@ -108,7 +133,7 @@ func findField(node ast.Node, name string) *ast.Field {
 // indent  <= 0 will be omitted.
 func (v *Values) AddYaml(value interface{}, indent int, newLine bool, name ...string) (string, error) {
 	name = toCamelCase(name)
-	err := unstructured.SetNestedField(v.values, value, name...)
+	err := unstructured.SetNestedField(v.Values, value, name...)
 	if err != nil {
 		return "", fmt.Errorf("%w: unable to set value: %v", err, name)
 	}
@@ -126,7 +151,7 @@ func (v *Values) AddYaml(value interface{}, indent int, newLine bool, name ...st
 func (v *Values) AddSecret(toBase64 bool, name ...string) (string, error) {
 	name = toCamelCase(name)
 	nameStr := strings.Join(name, ".")
-	err := unstructured.SetNestedField(v.values, "", name...)
+	err := unstructured.SetNestedField(v.Values, "", name...)
 	if err != nil {
 		return "", fmt.Errorf("%w: unable to set value: %v", err, nameStr)
 	}
@@ -146,4 +171,33 @@ func toCamelCase(name []string) []string {
 		name[i] = camelCase
 	}
 	return name
+}
+
+func mergeStructLits(struct1, struct2 *ast.StructLit) *ast.StructLit {
+	for _, elt2 := range struct2.Elts {
+		field2, ok := elt2.(*ast.Field)
+		if !ok {
+			continue
+		}
+		found := false
+		for _, elt1 := range struct1.Elts {
+			field1, ok := elt1.(*ast.Field)
+			if !ok {
+				continue
+			}
+			if field1.Label.(*ast.Ident).Name == field2.Label.(*ast.Ident).Name {
+				found = true
+				if struct1, ok := field1.Value.(*ast.StructLit); ok {
+					if struct2, ok := field2.Value.(*ast.StructLit); ok {
+						field1.Value = mergeStructLits(struct1, struct2)
+					}
+				}
+				break
+			}
+		}
+		if !found {
+			struct1.Elts = append(struct1.Elts, field2)
+		}
+	}
+	return struct1
 }

@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"cuelang.org/go/cue/ast"
 	"io"
 
 	"github.com/sirupsen/logrus"
@@ -63,11 +64,15 @@ func (r *defaultResult) Filename() string {
 	return r.name + ".yaml"
 }
 
-func (r *defaultResult) Values() timonify.Values {
-	return timonify.Values{}
+func (r *defaultResult) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
 func (r *defaultResult) Write(writer io.Writer) error {
 	_, err := writer.Write(r.data)
 	return err
+}
+
+func (r *defaultResult) Object() ast.Expr {
+	return ast.NewIdent("_")
 }

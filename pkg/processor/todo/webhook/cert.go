@@ -108,8 +108,8 @@ func (r *certResult) Filename() string {
 	return r.name + ".yaml"
 }
 
-func (r *certResult) Values() timonify.Values {
-	return timonify.Values{}
+func (r *certResult) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
 func (r *certResult) Write(writer io.Writer) error {

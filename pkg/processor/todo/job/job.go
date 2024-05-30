@@ -59,7 +59,7 @@ func (p job) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		return true, nil, fmt.Errorf("no job spec presented")
 	}
 
-	values := timonify.Values{}
+	values := timonify.NewValues()
 
 	// process job spec params:
 	if spec.BackoffLimit != nil {
@@ -147,7 +147,7 @@ func (r *result) Filename() string {
 	return r.name
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

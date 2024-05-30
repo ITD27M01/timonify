@@ -1,6 +1,8 @@
 package security_context
 
 import (
+	"cuelang.org/go/cue/ast"
+	"cuelang.org/go/cue/token"
 	"fmt"
 
 	"github.com/iancoleman/strcase"
@@ -51,7 +53,42 @@ func processSecurityContext(nameCamel string, containerType string, specMap map[
 
 func setSecContextValue(resourceName string, containerName string, castedContainer map[string]interface{}, values *timonify.Values) error {
 	if castedContainer["securityContext"] != nil {
-		err := unstructured.SetNestedField(*values, castedContainer["securityContext"], resourceName, containerName, cscValueName)
+		securityContextSchema := &ast.BinaryExpr{
+			Op: token.AND, // Represents the '&' operator
+			X:  ast.NewSel(ast.NewIdent("corev1"), "SecurityContext"),
+			Y: &ast.StructLit{
+				Elts: []ast.Decl{
+					&ast.Field{
+						Label: ast.NewIdent("allowPrivilegeEscalation"),
+						Value: ast.NewBool(false),
+					},
+					&ast.Field{
+						Label: ast.NewIdent("capabilities"),
+						Value: &ast.StructLit{
+							Elts: []ast.Decl{
+								&ast.Field{
+									Label: ast.NewIdent("drop"),
+									Value: &ast.BinaryExpr{
+										Op: token.OR,
+										X: &ast.ListLit{
+											Elts: []ast.Expr{
+												&ast.BasicLit{Kind: token.STRING, Value: "\"ALL\""},
+											},
+										},
+										Y: ast.NewList(
+											&ast.Ellipsis{
+												Type: ast.NewIdent("string"),
+											},
+										),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		_, err := values.Add(securityContextSchema, castedContainer["securityContext"], resourceName, containerName, cscValueName)
 		if err != nil {
 			return err
 		}

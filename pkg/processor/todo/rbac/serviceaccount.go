@@ -26,7 +26,7 @@ func (sa serviceAccount) Process(appMeta timonify.AppMetadata, obj *unstructured
 	if obj.GroupVersionKind() != serviceAccountGVC {
 		return false, nil, nil
 	}
-	values := timonify.Values{}
+	values := timonify.NewValues()
 	meta, err := processor.ProcessObjMeta(appMeta, obj, processor.WithAnnotations(values))
 	if err != nil {
 		return true, nil, err
@@ -47,7 +47,7 @@ func (r *saResult) Filename() string {
 	return "serviceaccount.yaml"
 }
 
-func (r *saResult) Values() timonify.Values {
+func (r *saResult) Values() *timonify.Values {
 	return r.values
 }
 

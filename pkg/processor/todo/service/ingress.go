@@ -87,8 +87,8 @@ func (r *ingressResult) Filename() string {
 	return r.name
 }
 
-func (r *ingressResult) Values() timonify.Values {
-	return timonify.Values{}
+func (r *ingressResult) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
 func (r *ingressResult) Write(writer io.Writer) error {

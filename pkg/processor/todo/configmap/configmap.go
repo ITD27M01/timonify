@@ -89,7 +89,7 @@ func (d configMap) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 }
 
 func parseMapData(data map[string]string, configName string) (map[string]string, timonify.Values) {
-	values := timonify.Values{}
+	values := timonify.NewValues()
 	for key, value := range data {
 		valuesNamePath := []string{configName, key}
 		if strings.HasSuffix(key, ".properties") {
@@ -160,7 +160,7 @@ func (r *result) Filename() string {
 	return r.name
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

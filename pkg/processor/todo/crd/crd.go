@@ -144,8 +144,8 @@ func (r *result) Filename() string {
 	return r.name
 }
 
-func (r *result) Values() timonify.Values {
-	return timonify.Values{}
+func (r *result) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
 func (r *result) Write(writer io.Writer) error {

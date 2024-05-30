@@ -62,7 +62,7 @@ func (d daemonset) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 		return true, nil, err
 	}
 
-	values := timonify.Values{}
+	values := timonify.NewValues()
 
 	name := appMeta.TrimName(obj.GetName())
 
@@ -146,7 +146,7 @@ func (r *result) Filename() string {
 	return "daemonset.yaml"
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

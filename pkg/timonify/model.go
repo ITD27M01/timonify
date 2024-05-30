@@ -1,6 +1,7 @@
 package timonify
 
 import (
+	"cuelang.org/go/cue/ast"
 	"io"
 
 	"github.com/syndicut/timonify/pkg/config"
@@ -21,9 +22,11 @@ type Template interface {
 	// Filename - returns template filename
 	Filename() string
 	// Values - returns set of values used in template
-	Values() Values
+	Values() *Values
 	// Write - writes helm template into given writer
 	Write(writer io.Writer) error
+	// Object - object for config.cue file
+	Object() ast.Expr
 }
 
 // Output - converts Template into helm chart on disk.

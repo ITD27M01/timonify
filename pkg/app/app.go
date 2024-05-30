@@ -7,25 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/syndicut/timonify/pkg/file"
-	"github.com/syndicut/timonify/pkg/processor/job"
-	"github.com/syndicut/timonify/pkg/processor/poddisruptionbudget"
-	"github.com/syndicut/timonify/pkg/processor/statefulset"
-
 	"github.com/sirupsen/logrus"
+	"github.com/syndicut/timonify/pkg/file"
 
 	"github.com/syndicut/timonify/pkg/config"
 	"github.com/syndicut/timonify/pkg/decoder"
 	"github.com/syndicut/timonify/pkg/processor"
-	"github.com/syndicut/timonify/pkg/processor/configmap"
-	"github.com/syndicut/timonify/pkg/processor/crd"
-	"github.com/syndicut/timonify/pkg/processor/daemonset"
 	"github.com/syndicut/timonify/pkg/processor/deployment"
-	"github.com/syndicut/timonify/pkg/processor/rbac"
-	"github.com/syndicut/timonify/pkg/processor/secret"
-	"github.com/syndicut/timonify/pkg/processor/service"
-	"github.com/syndicut/timonify/pkg/processor/storage"
-	"github.com/syndicut/timonify/pkg/processor/webhook"
 	"github.com/syndicut/timonify/pkg/timoni"
 )
 
@@ -47,26 +35,26 @@ func Start(stdin io.Reader, config config.Config) error {
 	}()
 	appCtx := New(config, timoni.NewOutput())
 	appCtx = appCtx.WithProcessors(
-		configmap.New(),
-		crd.New(),
-		daemonset.New(),
+		//configmap.New(),
+		//crd.New(),
+		//daemonset.New(),
 		deployment.New(),
-		statefulset.New(),
-		storage.New(),
-		service.New(),
-		service.NewIngress(),
-		rbac.ClusterRoleBinding(),
-		rbac.Role(),
-		rbac.RoleBinding(),
-		rbac.ServiceAccount(),
-		secret.New(),
-		webhook.Issuer(),
-		webhook.Certificate(),
-		webhook.ValidatingWebhook(),
-		webhook.MutatingWebhook(),
-		job.NewCron(),
-		job.NewJob(),
-		poddisruptionbudget.New(),
+		//statefulset.New(),
+		//storage.New(),
+		//service.New(),
+		//service.NewIngress(),
+		//rbac.ClusterRoleBinding(),
+		//rbac.Role(),
+		//rbac.RoleBinding(),
+		//rbac.ServiceAccount(),
+		//secret.New(),
+		//webhook.Issuer(),
+		//webhook.Certificate(),
+		//webhook.ValidatingWebhook(),
+		//webhook.MutatingWebhook(),
+		//job.NewCron(),
+		//job.NewJob(),
+		//poddisruptionbudget.New(),
 	).WithDefaultProcessor(processor.Default())
 	if len(config.Files) != 0 {
 		file.Walk(config.Files, config.FilesRecursively, func(filename string, fileReader io.Reader) {

@@ -16,34 +16,36 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var roleBindingTempl, _ = template.New("roleBinding").Parse(
-	`{{- .Meta }}
+var clusterRoleBindingTempl, _ = template.New("clusterRoleBinding").Parse(
+	`{{ .Meta }}
 {{ .RoleRef }}
 {{ .Subjects }}`)
 
-var roleBindingGVC = schema.GroupVersionKind{
+var clusterRoleBindingGVC = schema.GroupVersionKind{
 	Group:   "rbac.authorization.k8s.io",
 	Version: "v1",
-	Kind:    "RoleBinding",
+	Kind:    "ClusterRoleBinding",
 }
 
-// RoleBinding creates processor for k8s RoleBinding resource.
-func RoleBinding() timonify.Processor {
-	return &roleBinding{}
+// ClusterRoleBinding creates processor for k8s ClusterRoleBinding resource.
+func ClusterRoleBinding() timonify.Processor {
+	return &clusterRoleBinding{}
 }
 
-type roleBinding struct{}
+type clusterRoleBinding struct{}
 
-// Process k8s RoleBinding object into helm template. Returns false if not capable of processing given resource type.
-func (r roleBinding) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructured) (bool, timonify.Template, error) {
-	if obj.GroupVersionKind() != roleBindingGVC {
+// Process k8s ClusterRoleBinding object into template. Returns false if not capable of processing given resource type.
+func (r clusterRoleBinding) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructured) (bool, timonify.Template, error) {
+	if obj.GroupVersionKind() != clusterRoleBindingGVC {
 		return false, nil, nil
 	}
-	rb := rbacv1.RoleBinding{}
+
+	rb := rbacv1.ClusterRoleBinding{}
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &rb)
 	if err != nil {
 		return true, nil, fmt.Errorf("%w: unable to cast to RoleBinding", err)
 	}
+
 	meta, err := processor.ProcessObjMeta(appMeta, obj)
 	if err != nil {
 		return true, nil, err
@@ -66,7 +68,7 @@ func (r roleBinding) Process(appMeta timonify.AppMetadata, obj *unstructured.Uns
 		return true, nil, err
 	}
 
-	return true, &rbResult{
+	return true, &crbResult{
 		name: appMeta.TrimName(obj.GetName()),
 		data: struct {
 			Meta     string
@@ -80,7 +82,7 @@ func (r roleBinding) Process(appMeta timonify.AppMetadata, obj *unstructured.Uns
 	}, nil
 }
 
-type rbResult struct {
+type crbResult struct {
 	name string
 	data struct {
 		Meta     string
@@ -89,14 +91,14 @@ type rbResult struct {
 	}
 }
 
-func (r *rbResult) Filename() string {
+func (r *crbResult) Filename() string {
 	return strings.TrimSuffix(r.name, "-rolebinding") + "-rbac.yaml"
 }
 
-func (r *rbResult) Values() timonify.Values {
-	return timonify.Values{}
+func (r *crbResult) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
-func (r *rbResult) Write(writer io.Writer) error {
-	return roleBindingTempl.Execute(writer, r.data)
+func (r *crbResult) Write(writer io.Writer) error {
+	return clusterRoleBindingTempl.Execute(writer, r.data)
 }

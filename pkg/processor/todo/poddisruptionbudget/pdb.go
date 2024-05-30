@@ -51,7 +51,7 @@ func (r pdb) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		return true, nil, fmt.Errorf("%w: unable to cast to pdb", err)
 	}
 	spec := pdb.Spec
-	values := timonify.Values{}
+	values := timonify.NewValues()
 
 	meta, err := processor.ProcessObjMeta(appMeta, obj)
 	if err != nil {
@@ -97,7 +97,7 @@ func (r *result) Filename() string {
 	return r.name + ".yaml"
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

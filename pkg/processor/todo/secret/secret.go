@@ -69,7 +69,7 @@ func (d secret) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstruct
 		}
 	}
 
-	values := timonify.Values{}
+	values := timonify.NewValues()
 	var data, stringData string
 	templatedData := map[string]string{}
 	for key := range sec.Data {
@@ -140,7 +140,7 @@ func (r *result) Filename() string {
 	return r.name
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

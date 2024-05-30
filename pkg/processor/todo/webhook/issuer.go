@@ -78,8 +78,8 @@ func (r *issResult) Filename() string {
 	return r.name + ".yaml"
 }
 
-func (r *issResult) Values() timonify.Values {
-	return timonify.Values{}
+func (r *issResult) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
 func (r *issResult) Write(writer io.Writer) error {

@@ -23,9 +23,9 @@ func TestProcessContainerSecurityContext(t *testing.T) {
 			args: args{
 				nameCamel: "someResourceName",
 				specMap:   map[string]interface{}{},
-				values:    &timonify.Values{},
+				values:    &timonify.NewValues(),
 			},
-			want: &timonify.Values{},
+			want: &timonify.NewValues(),
 		},
 		{
 			name: "test with single container",
@@ -41,7 +41,7 @@ func TestProcessContainerSecurityContext(t *testing.T) {
 						},
 					},
 				},
-				values: &timonify.Values{},
+				values: &timonify.NewValues(),
 			},
 			want: &timonify.Values{
 				"someResourceName": map[string]interface{}{
@@ -73,7 +73,7 @@ func TestProcessContainerSecurityContext(t *testing.T) {
 						},
 					},
 				},
-				values: &timonify.Values{},
+				values: &timonify.NewValues(),
 			},
 			want: &timonify.Values{
 				"someResourceName": map[string]interface{}{
@@ -123,7 +123,7 @@ func Test_setSecContextValue(t *testing.T) {
 						"someField": "someValue",
 					},
 				},
-				values:                  &timonify.Values{},
+				values:                  &timonify.NewValues(),
 				fieldName:               "someField",
 				useRenderedHelmTemplate: false,
 			},

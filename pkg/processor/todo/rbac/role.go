@@ -99,8 +99,8 @@ func (r *crResult) GVK() schema.GroupVersionKind {
 	return clusterRoleGVC
 }
 
-func (r *crResult) Values() timonify.Values {
-	return timonify.Values{}
+func (r *crResult) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
 func (r *crResult) Write(writer io.Writer) error {

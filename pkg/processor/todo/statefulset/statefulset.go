@@ -57,7 +57,7 @@ func (d statefulset) Process(appMeta timonify.AppMetadata, obj *unstructured.Uns
 	}
 	delete((ssSpecMap["template"].(map[string]interface{}))["metadata"].(map[string]interface{}), "creationTimestamp")
 
-	values := timonify.Values{}
+	values := timonify.NewValues()
 
 	name := appMeta.TrimName(obj.GetName())
 	nameCamel := strcase.ToLowerCamel(name)
@@ -151,7 +151,7 @@ func (r *result) Filename() string {
 	return "statefulset.yaml"
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

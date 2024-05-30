@@ -59,7 +59,7 @@ func (p cron) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructur
 		return true, nil, fmt.Errorf("no job spec presented")
 	}
 
-	values := timonify.Values{}
+	values := timonify.NewValues()
 
 	// process job spec params:
 	if spec.Schedule != "" {
@@ -148,7 +148,7 @@ func (r *resultCron) Filename() string {
 	return r.name
 }
 
-func (r *resultCron) Values() timonify.Values {
+func (r *resultCron) Values() *timonify.Values {
 	return r.values
 }
 

@@ -67,7 +67,7 @@ func (r svc) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 	selector = cueformat.Indent(selector, 4)
 	selector = bytes.TrimRight(selector, "\n ")
 
-	values := timonify.Values{}
+	values := timonify.NewValues()
 	svcType := service.Spec.Type
 	if svcType == "" {
 		svcType = corev1.ServiceTypeClusterIP
@@ -113,7 +113,7 @@ func (r *result) Filename() string {
 	return r.name + ".yaml"
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

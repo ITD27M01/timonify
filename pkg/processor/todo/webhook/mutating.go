@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	vwhTempl = `apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingWebhookConfiguration
+	mwhTempl = `apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
 metadata:
   name: {{ include "%[1]s.fullname" . }}-%[2]s
   annotations:
@@ -27,30 +27,30 @@ webhooks:
 %[4]s`
 )
 
-var vwhGVK = schema.GroupVersionKind{
+var mwhGVK = schema.GroupVersionKind{
 	Group:   "admissionregistration.k8s.io",
 	Version: "v1",
-	Kind:    "ValidatingWebhookConfiguration",
+	Kind:    "MutatingWebhookConfiguration",
 }
 
-// ValidatingWebhook creates processor for k8s ValidatingWebhookConfiguration resource.
-func ValidatingWebhook() timonify.Processor {
-	return &vwh{}
+// MutatingWebhook creates processor for k8s MutatingWebhookConfiguration resource.
+func MutatingWebhook() timonify.Processor {
+	return &mwh{}
 }
 
-type vwh struct{}
+type mwh struct{}
 
-// Process k8s ValidatingWebhookConfiguration object into template. Returns false if not capable of processing given resource type.
-func (w vwh) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructured) (bool, timonify.Template, error) {
-	if obj.GroupVersionKind() != vwhGVK {
+// Process k8s MutatingWebhookConfiguration object into template. Returns false if not capable of processing given resource type.
+func (w mwh) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructured) (bool, timonify.Template, error) {
+	if obj.GroupVersionKind() != mwhGVK {
 		return false, nil, nil
 	}
 	name := appMeta.TrimName(obj.GetName())
 
-	whConf := v1.ValidatingWebhookConfiguration{}
+	whConf := v1.MutatingWebhookConfiguration{}
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &whConf)
 	if err != nil {
-		return true, nil, fmt.Errorf("%w: unable to cast to ValidatingWebhookConfiguration", err)
+		return true, nil, fmt.Errorf("%w: unable to cast to MutatingWebhookConfiguration", err)
 	}
 	for i, whc := range whConf.Webhooks {
 		whc.ClientConfig.Service.Name = appMeta.TemplatedName(whc.ClientConfig.Service.Name)
@@ -65,27 +65,27 @@ func (w vwh) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 	}
 	certName = strings.TrimPrefix(certName, appMeta.Namespace()+"/")
 	certName = appMeta.TrimName(certName)
-	res := fmt.Sprintf(vwhTempl, appMeta.ChartName(), name, certName, string(webhooks))
-	return true, &vwhResult{
+	res := fmt.Sprintf(mwhTempl, appMeta.ChartName(), name, certName, string(webhooks))
+	return true, &mwhResult{
 		name: name,
 		data: []byte(res),
 	}, nil
 }
 
-type vwhResult struct {
+type mwhResult struct {
 	name string
 	data []byte
 }
 
-func (r *vwhResult) Filename() string {
+func (r *mwhResult) Filename() string {
 	return r.name + ".yaml"
 }
 
-func (r *vwhResult) Values() timonify.Values {
-	return timonify.Values{}
+func (r *mwhResult) Values() *timonify.Values {
+	return timonify.NewValues()
 }
 
-func (r *vwhResult) Write(writer io.Writer) error {
+func (r *mwhResult) Write(writer io.Writer) error {
 	_, err := writer.Write(r.data)
 	return err
 }

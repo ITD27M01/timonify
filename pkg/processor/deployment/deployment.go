@@ -1,6 +1,8 @@
 package deployment
 
 import (
+	"cuelang.org/go/cue/ast"
+	"cuelang.org/go/cue/token"
 	"fmt"
 	"io"
 	"strings"
@@ -112,15 +114,15 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 		return true, nil, err
 	}
 
-	values := timonify.Values{}
+	values := timonify.NewValues()
 
 	name := appMeta.TrimName(obj.GetName())
-	replicas, err := processReplicas(name, &depl, &values)
+	replicas, err := processReplicas(name, &depl, values)
 	if err != nil {
 		return true, nil, err
 	}
 
-	revisionHistoryLimit, err := processRevisionHistoryLimit(name, &depl, &values)
+	revisionHistoryLimit, err := processRevisionHistoryLimit(name, &depl, values)
 	if err != nil {
 		return true, nil, err
 	}
@@ -195,11 +197,28 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 	}, nil
 }
 
+var replicasSchema = &ast.BinaryExpr{
+	Op: token.OR,
+	X: &ast.UnaryExpr{
+		Op: token.MUL,
+		X:  ast.NewLit(token.INT, "1"),
+	},
+	Y: &ast.BinaryExpr{
+		Op: token.AND,
+		X:  ast.NewIdent("int"),
+		Y: &ast.BinaryExpr{
+			Op: token.GTR,
+			X:  ast.NewIdent("int"),
+			Y:  ast.NewLit(token.INT, "0"),
+		},
+	},
+}
+
 func processReplicas(name string, deployment *appsv1.Deployment, values *timonify.Values) (string, error) {
 	if deployment.Spec.Replicas == nil {
 		return "", nil
 	}
-	replicasTpl, err := values.Add(int64(*deployment.Spec.Replicas), name, "replicas")
+	replicasTpl, err := values.Add(replicasSchema, int64(*deployment.Spec.Replicas), name, "replicas")
 	if err != nil {
 		return "", err
 	}
@@ -211,7 +230,7 @@ func processRevisionHistoryLimit(name string, deployment *appsv1.Deployment, val
 	if deployment.Spec.RevisionHistoryLimit == nil {
 		return "", nil
 	}
-	revisionHistoryLimitTpl, err := values.Add(int64(*deployment.Spec.RevisionHistoryLimit), name, "revisionHistoryLimit")
+	revisionHistoryLimitTpl, err := values.Add(ast.NewIdent("int64"), int64(*deployment.Spec.RevisionHistoryLimit), name, "revisionHistoryLimit")
 	if err != nil {
 		return "", err
 	}
@@ -233,14 +252,14 @@ type result struct {
 		PodAnnotations       string
 		Spec                 string
 	}
-	values timonify.Values
+	values *timonify.Values
 }
 
 func (r *result) Filename() string {
 	return "deployment.cue"
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 
@@ -256,4 +275,8 @@ func (r *result) Write(writer io.Writer) error {
 	//_, err = writer.Write(formatted)
 	//return err
 	return deploymentTempl.Execute(writer, r.data)
+}
+
+func (r *result) Object() ast.Expr {
+	return ast.NewIdent("#Deployment")
 }

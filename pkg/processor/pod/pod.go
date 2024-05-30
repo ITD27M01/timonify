@@ -1,6 +1,8 @@
 package pod
 
 import (
+	"cuelang.org/go/cue/ast"
+	"cuelang.org/go/cue/token"
 	"fmt"
 	"strings"
 
@@ -16,7 +18,7 @@ import (
 const imagePullPolicyTemplate = "{{ .Values.%[1]s.%[2]s.imagePullPolicy }}"
 const envValue = "{{ quote .Values.%[1]s.%[2]s.%[3]s.%[4]s }}"
 
-func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSpec) (map[string]interface{}, timonify.Values, error) {
+func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSpec) (map[string]interface{}, *timonify.Values, error) {
 	values, err := processPodSpec(objName, appMeta, &spec)
 	if err != nil {
 		return nil, nil, err
@@ -52,11 +54,13 @@ func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSp
 	if appMeta.Config().ImagePullSecrets {
 		if _, defined := specMap["imagePullSecrets"]; !defined {
 			specMap["imagePullSecrets"] = "{{ .Values.imagePullSecrets | default list | toJson }}"
-			values["imagePullSecrets"] = []string{}
+			if _, err := values.Add(ast.NewSel(ast.NewIdent("corev1"), "#LocalObjectReference"), []string{}, "imagePullSecrets"); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
-	err = securityContext.ProcessContainerSecurityContext(objName, specMap, &values)
+	err = securityContext.ProcessContainerSecurityContext(objName, specMap, values)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -67,7 +71,7 @@ func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSp
 		if err != nil {
 			return nil, nil, err
 		}
-		err = unstructured.SetNestedStringMap(values, spec.NodeSelector, objName, "nodeSelector")
+		_, err = values.Add(ast.NewStruct(&ast.Ellipsis{Type: ast.NewIdent("string")}), spec.NodeSelector, objName, "nodeSelector")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -76,14 +80,14 @@ func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSp
 	return specMap, values, nil
 }
 
-func processNestedContainers(specMap map[string]interface{}, objName string, values map[string]interface{}, containerKey string) (map[string]interface{}, map[string]interface{}, error) {
+func processNestedContainers(specMap map[string]interface{}, objName string, values *timonify.Values, containerKey string) (map[string]interface{}, *timonify.Values, error) {
 	containers, _, err := unstructured.NestedSlice(specMap, containerKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(containers) > 0 {
-		containers, values, err = processContainers(objName, values, containerKey, containers)
+		containers, values, err = processContainers(objName, *values, containerKey, containers)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -97,10 +101,10 @@ func processNestedContainers(specMap map[string]interface{}, objName string, val
 	return specMap, values, nil
 }
 
-func processContainers(objName string, values timonify.Values, containerType string, containers []interface{}) ([]interface{}, timonify.Values, error) {
+func processContainers(objName string, values timonify.Values, containerType string, containers []interface{}) ([]interface{}, *timonify.Values, error) {
 	for i := range containers {
 		containerName := strcase.ToLowerCamel((containers[i].(map[string]interface{})["name"]).(string))
-		res, exists, err := unstructured.NestedMap(values, objName, containerName, "resources")
+		res, exists, err := unstructured.NestedMap(values.Values, objName, containerName, "resources")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -121,19 +125,19 @@ func processContainers(objName string, values timonify.Values, containerType str
 				return nil, nil, err
 			}
 
-			err = unstructured.SetNestedStringSlice(values, args, objName, containerName, "args")
+			_, err = values.Add(ast.NewList(&ast.Ellipsis{Type: ast.NewIdent("string")}), args, objName, containerName, "args")
 			if err != nil {
 				return nil, nil, fmt.Errorf("%w: unable to set deployment value field", err)
 			}
 		}
 	}
-	return containers, values, nil
+	return containers, &values, nil
 }
 
-func processPodSpec(name string, appMeta timonify.AppMetadata, pod *corev1.PodSpec) (timonify.Values, error) {
-	values := timonify.Values{}
+func processPodSpec(name string, appMeta timonify.AppMetadata, pod *corev1.PodSpec) (*timonify.Values, error) {
+	values := timonify.NewValues()
 	for i, c := range pod.Containers {
-		processed, err := processPodContainer(name, appMeta, c, &values)
+		processed, err := processPodContainer(name, appMeta, c, values)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +145,7 @@ func processPodSpec(name string, appMeta timonify.AppMetadata, pod *corev1.PodSp
 	}
 
 	for i, c := range pod.InitContainers {
-		processed, err := processPodContainer(name, appMeta, c, &values)
+		processed, err := processPodContainer(name, appMeta, c, values)
 		if err != nil {
 			return nil, err
 		}
@@ -178,13 +182,17 @@ func processPodContainer(name string, appMeta timonify.AppMetadata, c corev1.Con
 	containerName := strcase.ToLowerCamel(c.Name)
 	c.Image = fmt.Sprintf("{{ .Values.%[1]s.%[2]s.image.repository }}:{{ .Values.%[1]s.%[2]s.image.tag | default .Chart.AppVersion }}", name, containerName)
 
-	err := unstructured.SetNestedField(*values, repo, name, containerName, "image", "repository")
-	if err != nil {
+	if _, err := values.Add(ast.NewIdent("string"), repo, name, containerName, "image", "repository"); err != nil {
 		return c, fmt.Errorf("%w: unable to set deployment value field", err)
 	}
-	err = unstructured.SetNestedField(*values, tag, name, containerName, "image", "tag")
-	if err != nil {
+	if _, err := values.Add(ast.NewIdent("string"), tag, name, containerName, "image", "tag"); err != nil {
 		return c, fmt.Errorf("%w: unable to set deployment value field", err)
+	}
+
+	// Image has a common timoni schema, so we override it here
+	err := values.AddConfig(ast.NewSel(ast.NewIdent("timoniv1"), "#Image"), name, containerName, "image")
+	if err != nil {
+		return c, fmt.Errorf("%w: unable to set image value field", err)
 	}
 
 	c, err = processEnv(name, appMeta, c, values)
@@ -205,20 +213,54 @@ func processPodContainer(name string, appMeta timonify.AppMetadata, c corev1.Con
 		Value: fmt.Sprintf("{{ quote .Values.%s }}", cluster.DomainKey),
 	})
 	for k, v := range c.Resources.Requests {
-		err = unstructured.SetNestedField(*values, v.ToUnstructured(), name, containerName, "resources", "requests", k.String())
+		_, err = values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceList"), v.String(), name, containerName, "resources", "requests", k.String())
 		if err != nil {
 			return c, fmt.Errorf("%w: unable to set container resources value", err)
 		}
 	}
 	for k, v := range c.Resources.Limits {
-		err = unstructured.SetNestedField(*values, v.ToUnstructured(), name, containerName, "resources", "limits", k.String())
+		_, err = values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceList"), v.String(), name, containerName, "resources", "limits", k.String())
 		if err != nil {
 			return c, fmt.Errorf("%w: unable to set container resources value", err)
 		}
 	}
+	resourcesSchema := &ast.BinaryExpr{
+		Op: token.AND, // Represents the '&' operator
+		X:  ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceRequirements"),
+		Y: &ast.StructLit{
+			Elts: []ast.Decl{
+				&ast.Field{
+					Label: ast.NewIdent("requests"),
+					Value: &ast.StructLit{
+						Elts: []ast.Decl{
+							&ast.Field{
+								Label: ast.NewIdent("cpu"),
+								Value: &ast.BinaryExpr{
+									Op: token.OR,
+									X:  &ast.BasicLit{Kind: token.STRING, Value: "\"10m\""},
+									Y:  ast.NewSel(ast.NewIdent("timoniv1"), "#CPUQuantity"),
+								},
+							},
+							&ast.Field{
+								Label: ast.NewIdent("memory"),
+								Value: &ast.BinaryExpr{
+									Op: token.OR,
+									X:  &ast.BasicLit{Kind: token.STRING, Value: "\"32Mi\""},
+									Y:  ast.NewSel(ast.NewIdent("timoniv1"), "#MemoryQuantity"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := values.AddConfig(resourcesSchema, name, containerName, "resources"); err != nil {
+		return c, fmt.Errorf("%w: unable to add resources config value", err)
+	}
 
 	if c.ImagePullPolicy != "" {
-		err = unstructured.SetNestedField(*values, string(c.ImagePullPolicy), name, containerName, "imagePullPolicy")
+		_, err = values.Add(ast.NewSel(ast.NewIdent("corev1"), "#PullPolicy"), string(c.ImagePullPolicy), name, containerName, "imagePullPolicy")
 		if err != nil {
 			return c, fmt.Errorf("%w: unable to set container imagePullPolicy", err)
 		}
@@ -242,7 +284,7 @@ func processEnv(name string, appMeta timonify.AppMetadata, c corev1.Container, v
 			continue
 		}
 
-		err := unstructured.SetNestedField(*values, c.Env[i].Value, name, containerName, "env", strcase.ToLowerCamel(strings.ToLower(c.Env[i].Name)))
+		_, err := values.Add(ast.NewList(&ast.Ellipsis{Type: ast.NewSel(ast.NewIdent("corev1"), "#EnvVar")}), c.Env[i].Value, name, containerName, "env", strcase.ToLowerCamel(strings.ToLower(c.Env[i].Name)))
 		if err != nil {
 			return c, fmt.Errorf("%w: unable to set deployment value field", err)
 		}

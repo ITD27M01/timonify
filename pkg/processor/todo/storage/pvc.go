@@ -44,7 +44,7 @@ func (p pvc) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 
 	name := appMeta.TrimName(obj.GetName())
 	nameCamelCase := strcase.ToLowerCamel(name)
-	values := timonify.Values{}
+	values := timonify.NewValues()
 
 	claim := corev1.PersistentVolumeClaim{}
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &claim)
@@ -120,7 +120,7 @@ func (r *result) Filename() string {
 	return r.name
 }
 
-func (r *result) Values() timonify.Values {
+func (r *result) Values() *timonify.Values {
 	return r.values
 }
 

@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"cuelang.org/go/cue/ast"
 	"fmt"
 	"strings"
 
@@ -83,14 +84,14 @@ func ProcessObjMeta(appMeta timonify.AppMetadata, obj *unstructured.Unstructured
 	apiVersion, kind := obj.GetObjectKind().GroupVersionKind().ToAPIVersionAndKind()
 
 	var metaStr string
-	if options.values != nil && options.annotations {
+	if options.values.Values != nil && options.annotations {
 		name := strcase.ToLowerCamel(appMeta.TrimName(obj.GetName()))
 		kind := strcase.ToLowerCamel(kind)
 		valuesAnnotations := make(map[string]interface{})
 		for k, v := range obj.GetAnnotations() {
 			valuesAnnotations[k] = v
 		}
-		err = unstructured.SetNestedField(options.values, valuesAnnotations, name, kind, "annotations")
+		_, err := options.values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#Annotations"), valuesAnnotations, name, kind, "annotations")
 		if err != nil {
 			return "", err
 		}
