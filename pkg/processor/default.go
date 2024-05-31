@@ -3,6 +3,7 @@ package processor
 import (
 	"cuelang.org/go/cue/ast"
 	"io"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	cueformat "github.com/syndicut/timonify/pkg/cue"
@@ -36,6 +37,7 @@ func (d dft) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		"Name":       obj.GetName(),
 	}).Warn("Unsupported resource: using default processor.")
 	name := appMeta.TrimName(obj.GetName())
+	label := strings.ToLower(obj.GetKind())
 
 	meta, err := ProcessObjMeta(appMeta, obj)
 	if err != nil {
@@ -50,14 +52,16 @@ func (d dft) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		return true, nil, err
 	}
 	return true, &defaultResult{
-		data: []byte(meta + "\n" + body),
-		name: name,
+		data:  []byte(meta + "\n" + body),
+		name:  name,
+		label: label,
 	}, nil
 }
 
 type defaultResult struct {
-	data []byte
-	name string
+	data  []byte
+	name  string
+	label string
 }
 
 func (r *defaultResult) Filename() string {
@@ -73,6 +77,10 @@ func (r *defaultResult) Write(writer io.Writer) error {
 	return err
 }
 
-func (r *defaultResult) Object() ast.Expr {
+func (r *defaultResult) ObjectType() ast.Expr {
 	return ast.NewIdent("_")
+}
+
+func (r *defaultResult) ObjectLabel() ast.Label {
+	return ast.NewIdent(r.label)
 }

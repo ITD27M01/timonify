@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	sc           = "securityContext"
-	cscValueName = "containerSecurityContext"
-	helmTemplate = "{{- toYaml .Values.%[1]s.%[2]s.containerSecurityContext | nindent 10 }}"
+	sc             = "securityContext"
+	cscValueName   = "containerSecurityContext"
+	timoniTemplate = "#config.%[1]s.%[2]s.containerSecurityContext"
 )
 
 // ProcessContainerSecurityContext adds 'securityContext' to the podSpec in specMap, if it doesn't have one already defined.
@@ -93,7 +93,7 @@ func setSecContextValue(resourceName string, containerName string, castedContain
 			return err
 		}
 
-		valueString := fmt.Sprintf(helmTemplate, resourceName, containerName)
+		valueString := fmt.Sprintf(timoniTemplate, resourceName, containerName)
 
 		err = unstructured.SetNestedField(castedContainer, valueString, sc)
 		if err != nil {

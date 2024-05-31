@@ -17,9 +17,9 @@ const metaTemplate = `apiVersion: %[1]s
 kind:       %[2]s
 metadata: {
   name: %[3]s
-  labels: #config.%[4]s.metadata.labels & {
+  labels: #config.metadata.labels & %[4]s
 %[5]s
-%[6]s`
+}`
 
 const annotationsTemplate = `  if #config.%[1]s.%[2]s.podAnnotations != _|_ {
 		annotations: #config.%[1]s.%[2]s.podAnnotations
@@ -99,7 +99,7 @@ func ProcessObjMeta(appMeta timonify.AppMetadata, obj *unstructured.Unstructured
 		annotations = fmt.Sprintf(annotationsTemplate, name, kind)
 	}
 
-	metaStr = fmt.Sprintf(metaTemplate, apiVersion, kind, templatedName, appMeta.ChartName(), labels, annotations)
+	metaStr = fmt.Sprintf(metaTemplate, apiVersion, kind, templatedName, labels, annotations)
 	metaStr = strings.Trim(metaStr, " \n")
 	metaStr = strings.ReplaceAll(metaStr, "\n\n", "\n")
 	return metaStr, nil

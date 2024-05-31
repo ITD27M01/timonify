@@ -25,8 +25,10 @@ type Template interface {
 	Values() *Values
 	// Write - writes helm template into given writer
 	Write(writer io.Writer) error
-	// Object - object for config.cue file
-	Object() ast.Expr
+	// ObjectType - object type for config.cue file
+	ObjectType() ast.Expr
+	// ObjectLabel - object label for config.cue file
+	ObjectLabel() ast.Label
 }
 
 // Output - converts Template into helm chart on disk.

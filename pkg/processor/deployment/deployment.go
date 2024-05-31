@@ -71,13 +71,10 @@ import (
 {{- if .RevisionHistoryLimit }}
 {{ .RevisionHistoryLimit }}
 {{- end }}
-		selector: {
 {{ .Selector }}
-		}
 		template: {
 			metadata: {
-				labels: {
-{{ .PodLabels }}
+				labels: {{ .PodLabels }}
 {{- .PodAnnotations }}
 			}
 			spec: corev1.#PodSpec & {
@@ -87,9 +84,8 @@ import (
 	}
 }`)
 
-const selectorTempl = `%[1]s
-{{- include "%[2]s.selectorLabels" . | nindent 6 }}
-%[3]s`
+const selectorTempl = `selector: matchLabels: #config.selector.labels & %[1]s
+%[2]s`
 
 // New creates processor for k8s Deployment resource.
 func New() timonify.Processor {
@@ -127,26 +123,30 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 		return true, nil, err
 	}
 
-	matchLabels, err := cueformat.Marshal(map[string]interface{}{"matchLabels": depl.Spec.Selector.MatchLabels}, 0)
+	matchLabels, err := cueformat.Marshal(depl.Spec.Selector.MatchLabels, 0)
 	if err != nil {
 		return true, nil, err
 	}
 	matchExpr := ""
 	if depl.Spec.Selector.MatchExpressions != nil {
-		matchExpr, err = cueformat.Marshal(map[string]interface{}{"matchExpressions": depl.Spec.Selector.MatchExpressions}, 0)
+		matchExpr, err = cueformat.Marshal(map[string]interface{}{
+			"selector": map[string]interface{}{
+				"matchExpressions": depl.Spec.Selector.MatchExpressions,
+			},
+		}, 4)
 		if err != nil {
 			return true, nil, err
 		}
 	}
-	selector := fmt.Sprintf(selectorTempl, matchLabels, appMeta.ChartName(), matchExpr)
+	selector := fmt.Sprintf(selectorTempl, matchLabels, matchExpr)
 	selector = strings.Trim(selector, " \n")
 	selector = string(cueformat.Indent([]byte(selector), 4))
 
-	podLabels, err := cueformat.Marshal(depl.Spec.Template.ObjectMeta.Labels, 8)
+	podLabels, err := cueformat.Marshal(depl.Spec.Template.ObjectMeta.Labels, 0)
 	if err != nil {
 		return true, nil, err
 	}
-	podLabels += fmt.Sprintf("\n      {{- include \"%s.selectorLabels\" . | nindent 8 }}", appMeta.ChartName())
+	podLabels = fmt.Sprintf("#config.selector.labels & %s", podLabels)
 
 	podAnnotations := ""
 	if len(depl.Spec.Template.ObjectMeta.Annotations) != 0 {
@@ -277,6 +277,10 @@ func (r *result) Write(writer io.Writer) error {
 	return deploymentTempl.Execute(writer, r.data)
 }
 
-func (r *result) Object() ast.Expr {
+func (r *result) ObjectType() ast.Expr {
 	return ast.NewIdent("#Deployment")
+}
+
+func (r *result) ObjectLabel() ast.Label {
+	return ast.NewIdent("deploy")
 }

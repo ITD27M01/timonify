@@ -15,8 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const imagePullPolicyTemplate = "{{ .Values.%[1]s.%[2]s.imagePullPolicy }}"
-const envValue = "{{ quote .Values.%[1]s.%[2]s.%[3]s.%[4]s }}"
+const imagePullPolicyTemplate = "#config.%[1]s.%[2]s.imagePullPolicy"
+const envValue = "#config.%[1]s.%[2]s.%[3]s.%[4]s }}"
 
 func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSpec) (map[string]interface{}, *timonify.Values, error) {
 	values, err := processPodSpec(objName, appMeta, &spec)
@@ -67,11 +67,14 @@ func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSp
 
 	// process nodeSelector if presented:
 	if spec.NodeSelector != nil {
-		err = unstructured.SetNestedField(specMap, fmt.Sprintf(`{{- toYaml .Values.%s.nodeSelector | nindent 8 }}`, objName), "nodeSelector")
+		err = unstructured.SetNestedField(specMap, fmt.Sprintf(`#config.%s.nodeSelector`, objName), "nodeSelector")
 		if err != nil {
 			return nil, nil, err
 		}
-		_, err = values.Add(ast.NewStruct(&ast.Ellipsis{Type: ast.NewIdent("string")}), spec.NodeSelector, objName, "nodeSelector")
+		_, err = values.Add(ast.NewStruct(&ast.Field{
+			Label: ast.NewList(ast.NewIdent("string")),
+			Value: ast.NewIdent("string"),
+		}), spec.NodeSelector, objName, "nodeSelector")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -109,7 +112,7 @@ func processContainers(objName string, values timonify.Values, containerType str
 			return nil, nil, err
 		}
 		if exists && len(res) > 0 {
-			err = unstructured.SetNestedField(containers[i].(map[string]interface{}), fmt.Sprintf(`{{- toYaml .Values.%s.%s.resources | nindent 10 }}`, objName, containerName), "resources")
+			err = unstructured.SetNestedField(containers[i].(map[string]interface{}), fmt.Sprintf(`#config.%s.%s.resources`, objName, containerName), "resources")
 			if err != nil {
 				return nil, nil, err
 			}
@@ -120,7 +123,7 @@ func processContainers(objName string, values timonify.Values, containerType str
 			return nil, nil, err
 		}
 		if exists && len(args) > 0 {
-			err = unstructured.SetNestedField(containers[i].(map[string]interface{}), fmt.Sprintf(`{{- toYaml .Values.%[1]s.%[2]s.args | nindent 8 }}`, objName, containerName), "args")
+			err = unstructured.SetNestedField(containers[i].(map[string]interface{}), fmt.Sprintf(`#config.%[1]s.%[2]s.args`, objName, containerName), "args")
 			if err != nil {
 				return nil, nil, err
 			}
@@ -180,7 +183,7 @@ func processPodContainer(name string, appMeta timonify.AppMetadata, c corev1.Con
 	}
 	repo, tag := c.Image[:index], c.Image[index+1:]
 	containerName := strcase.ToLowerCamel(c.Name)
-	c.Image = fmt.Sprintf("{{ .Values.%[1]s.%[2]s.image.repository }}:{{ .Values.%[1]s.%[2]s.image.tag | default .Chart.AppVersion }}", name, containerName)
+	c.Image = fmt.Sprintf("#config.%[1]s.%[2]s.image.reference", name, containerName)
 
 	if _, err := values.Add(ast.NewIdent("string"), repo, name, containerName, "image", "repository"); err != nil {
 		return c, fmt.Errorf("%w: unable to set deployment value field", err)
@@ -210,7 +213,7 @@ func processPodContainer(name string, appMeta timonify.AppMetadata, c corev1.Con
 	}
 	c.Env = append(c.Env, corev1.EnvVar{
 		Name:  cluster.DomainEnv,
-		Value: fmt.Sprintf("{{ quote .Values.%s }}", cluster.DomainKey),
+		Value: fmt.Sprintf("#config.%s", cluster.DomainKey),
 	})
 	for k, v := range c.Resources.Requests {
 		_, err = values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceList"), v.String(), name, containerName, "resources", "requests", k.String())

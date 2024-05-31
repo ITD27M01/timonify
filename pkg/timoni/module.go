@@ -127,14 +127,14 @@ func overwriteValuesFile(chartDir string, values *timonify.Values) error {
 
 func overwriteConfigFile(chartDir string, values *timonify.Values, files map[string][]timonify.Template) error {
 	objectsNode := ast.NewStruct()
-	for filename, templates := range files {
+	for _, templates := range files {
 		for _, t := range templates {
-			objectsNode.Elts = append(objectsNode.Elts, ast.NewStruct(
+			objectsNode.Elts = append(objectsNode.Elts,
 				&ast.Field{
-					Label: ast.NewIdent(filename),
+					Label: t.ObjectLabel(),
 					Value: &ast.BinaryExpr{
 						Op: token.AND, // Represents the '&' operator
-						X:  t.Object(),
+						X:  t.ObjectType(),
 						Y: &ast.StructLit{
 							Elts: []ast.Decl{
 								&ast.Field{
@@ -145,12 +145,12 @@ func overwriteConfigFile(chartDir string, values *timonify.Values, files map[str
 						},
 					},
 				},
-			))
+			)
 		}
 	}
 
 	file := filepath.Join(chartDir, "templates", "config.cue")
-	b, err := format.Node(defaultConfig(objectsNode, values.Config))
+	b, err := format.Node(defaultConfig(objectsNode, values.Config.Elts...))
 	if err != nil {
 		return fmt.Errorf("%w: unable to format config.cue", err)
 	}
