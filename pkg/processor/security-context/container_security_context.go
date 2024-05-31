@@ -55,7 +55,7 @@ func setSecContextValue(resourceName string, containerName string, castedContain
 	if castedContainer["securityContext"] != nil {
 		securityContextSchema := &ast.BinaryExpr{
 			Op: token.AND, // Represents the '&' operator
-			X:  ast.NewSel(ast.NewIdent("corev1"), "SecurityContext"),
+			X:  ast.NewSel(ast.NewIdent("corev1"), "#SecurityContext"),
 			Y: &ast.StructLit{
 				Elts: []ast.Decl{
 					&ast.Field{

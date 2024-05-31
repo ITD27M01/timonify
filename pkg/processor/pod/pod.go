@@ -287,7 +287,7 @@ func processEnv(name string, appMeta timonify.AppMetadata, c corev1.Container, v
 			continue
 		}
 
-		_, err := values.Add(ast.NewList(&ast.Ellipsis{Type: ast.NewSel(ast.NewIdent("corev1"), "#EnvVar")}), c.Env[i].Value, name, containerName, "env", strcase.ToLowerCamel(strings.ToLower(c.Env[i].Name)))
+		_, err := values.Add(ast.NewIdent("string"), c.Env[i].Value, name, containerName, "env", strcase.ToLowerCamel(strings.ToLower(c.Env[i].Name)))
 		if err != nil {
 			return c, fmt.Errorf("%w: unable to set deployment value field", err)
 		}

@@ -2,7 +2,7 @@ package deployment
 
 import (
 	"cuelang.org/go/cue/ast"
-	"cuelang.org/go/cue/token"
+	"cuelang.org/go/cue/parser"
 	"fmt"
 	"io"
 	"strings"
@@ -58,12 +58,11 @@ var deploymentTempl, _ = template.New("deployment").Parse(
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	timoniv1 "timoni.sh/core/v1alpha1"
 )
 
 #Deployment: appsv1.#Deployment & {
 	#config:    #Config
-{{- .Meta }}
+{{ .Meta }}
 	spec: appsv1.#DeploymentSpec & {
 {{- if .Replicas }}
 {{ .Replicas }}
@@ -197,22 +196,16 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 	}, nil
 }
 
-var replicasSchema = &ast.BinaryExpr{
-	Op: token.OR,
-	X: &ast.UnaryExpr{
-		Op: token.MUL,
-		X:  ast.NewLit(token.INT, "1"),
-	},
-	Y: &ast.BinaryExpr{
-		Op: token.AND,
-		X:  ast.NewIdent("int"),
-		Y: &ast.BinaryExpr{
-			Op: token.GTR,
-			X:  ast.NewIdent("int"),
-			Y:  ast.NewLit(token.INT, "0"),
-		},
-	},
+func MustParse(src string) ast.Expr {
+	expr, err := parser.ParseExpr("", []byte(src))
+	if err != nil {
+		// This should never happen and shows that something is wrong with the cue parsing
+		panic(fmt.Errorf("%w: failed to parse expression", err))
+	}
+	return expr
 }
+
+var replicasSchema = MustParse("*1 | int & >0")
 
 func processReplicas(name string, deployment *appsv1.Deployment, values *timonify.Values) (string, error) {
 	if deployment.Spec.Replicas == nil {

@@ -13,8 +13,8 @@ import (
 	"github.com/syndicut/timonify/pkg/timonify"
 )
 
-const metaTemplate = `apiVersion: %[1]s
-kind:       %[2]s
+const metaTemplate = `apiVersion: "%[1]s"
+kind:       "%[2]s"
 metadata: {
   name: %[3]s
   labels: #config.metadata.labels & %[4]s
