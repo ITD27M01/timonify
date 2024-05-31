@@ -16,7 +16,7 @@ import (
 const metaTemplate = `apiVersion: "%[1]s"
 kind:       "%[2]s"
 metadata: {
-  name: %[3]s
+  name: "%[3]s"
   labels: #config.metadata.labels & %[4]s
 %[5]s
 }`

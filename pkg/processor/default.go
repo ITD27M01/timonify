@@ -65,7 +65,7 @@ type defaultResult struct {
 }
 
 func (r *defaultResult) Filename() string {
-	return r.name + ".yaml"
+	return r.name + ".cue"
 }
 
 func (r *defaultResult) Values() *timonify.Values {

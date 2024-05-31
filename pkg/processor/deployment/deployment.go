@@ -76,9 +76,7 @@ import (
 				labels: {{ .PodLabels }}
 {{- .PodAnnotations }}
 			}
-			spec: corev1.#PodSpec & {
-{{ .Spec }}
-			}
+			spec: corev1.#PodSpec & {{ .Spec }}
 		}
 	}
 }`)

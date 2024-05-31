@@ -2,16 +2,16 @@ package metadata
 
 import (
 	"fmt"
-	"github.com/syndicut/timonify/pkg/config"
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"github.com/syndicut/timonify/pkg/config"
 	"github.com/syndicut/timonify/pkg/timonify"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const nameTeml = `#config.metadata.name + "-%s"`
+const nameTeml = `\(#config.metadata.name)-%s`
 
 var nsGVK = schema.GroupVersionKind{
 	Group:   "",

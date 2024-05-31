@@ -16,7 +16,7 @@ import (
 )
 
 const imagePullPolicyTemplate = "#config.%[1]s.%[2]s.imagePullPolicy"
-const envValue = "#config.%[1]s.%[2]s.%[3]s.%[4]s }}"
+const envValue = "#config.%[1]s.%[2]s.%[3]s.%[4]s"
 
 func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSpec) (map[string]interface{}, *timonify.Values, error) {
 	values, err := processPodSpec(objName, appMeta, &spec)
@@ -67,7 +67,7 @@ func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSp
 
 	// process nodeSelector if presented:
 	if spec.NodeSelector != nil {
-		err = unstructured.SetNestedField(specMap, fmt.Sprintf(`#config.%s.nodeSelector`, objName), "nodeSelector")
+		err = unstructured.SetNestedField(specMap, fmt.Sprintf(`\(#config.%s.nodeSelector)`, objName), "nodeSelector")
 		if err != nil {
 			return nil, nil, err
 		}

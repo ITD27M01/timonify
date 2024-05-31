@@ -2,8 +2,13 @@ package cue
 
 import (
 	"bytes"
+	"cuelang.org/go/cue/ast"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/format"
+	"cuelang.org/go/cue/parser"
+	"cuelang.org/go/cue/token"
+	"fmt"
+	"strings"
 )
 
 // Indent - adds indentation to given content.
@@ -23,11 +28,73 @@ func Marshal(object interface{}, indent int) (string, error) {
 	if objectValue.Err() != nil {
 		return "", objectValue.Err()
 	}
-	objectBytes, err := format.Node(objectValue.Syntax())
+	node := objectValue.Syntax()
+
+	if _, err := parseStringLits(node); err != nil {
+		return "", fmt.Errorf("%w: failed to parse string literals", err)
+	}
+	objectBytes, err := format.Node(node)
 	if err != nil {
 		return "", err
 	}
 	objectBytes = Indent(objectBytes, indent)
 	objectBytes = bytes.TrimRight(objectBytes, "\n ")
 	return string(objectBytes), nil
+}
+
+// parseStringLits checks every field recursively if it has an ast.BasicLit with kind token.STRING call parser.ParseExpr result
+func parseStringLits(node ast.Node) (ast.Node, error) {
+	switch node := node.(type) {
+	case *ast.StructLit:
+		for _, decl := range node.Elts {
+			_, err := parseStringLits(decl)
+			if err != nil {
+				return nil, err
+			}
+		}
+	case *ast.ListLit:
+		for i, decl := range node.Elts {
+			if isStringLit(decl) {
+				parsed, err := parseStringLit(decl.(*ast.BasicLit))
+				if err == nil {
+					node.Elts[i] = parsed
+				}
+				continue
+			}
+			decl, err := parseStringLits(decl)
+			if err != nil {
+				return node, err
+			}
+			node.Elts[i] = decl.(ast.Expr)
+		}
+
+	case *ast.Field:
+		if isStringLit(node.Value) {
+			parsed, err := parseStringLit(node.Value.(*ast.BasicLit))
+			if err != nil {
+				return node, nil
+			}
+			node.Value = parsed
+			return node, nil
+		}
+		_, err := parseStringLits(node.Value)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return node, nil
+}
+
+// isStringLit checks if the value is a BasicLit with kind token.STRING
+func isStringLit(v ast.Expr) bool {
+	if v, ok := v.(*ast.BasicLit); ok && v.Kind == token.STRING {
+		return true
+	}
+	return false
+}
+
+func parseStringLit(v *ast.BasicLit) (ast.Expr, error) {
+	value := strings.ReplaceAll(v.Value, `\\`, `\`)
+	return parser.ParseExpr("", value)
 }
