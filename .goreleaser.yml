@@ -48,9 +48,9 @@ brews:
     description: "Creates Helm chart from Kubernetes yaml."
     license: "MIT"
     test: |
-      system "#{bin}/helmify --version"
+      system "#{bin}/timonify --version"
     install: |
-      bin.install "helmify"
+      bin.install "timonify"
 release:
   github:
     owner: arttor

@@ -10,10 +10,10 @@ import (
 )
 
 func TestProcessObjMeta(t *testing.T) {
-	testMeta := metadata.New(config.Config{ChartName: "chart-name"})
+	testMeta := metadata.New(config.Config{ModuleName: "module-name"})
 	testMeta.Load(internal.TestNs)
 	res, err := ProcessObjMeta(testMeta, internal.TestNs)
 	assert.NoError(t, err)
-	assert.Contains(t, res, "chart-name.labels")
-	assert.Contains(t, res, "chart-name.fullname")
+	assert.Contains(t, res, "module-name.labels")
+	assert.Contains(t, res, "module-name.fullname")
 }

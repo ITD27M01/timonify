@@ -87,12 +87,12 @@ func (c cert) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructur
 	spec = cueformat.Indent(spec, 2)
 	spec = bytes.TrimRight(spec, "\n ")
 	tmpl := ""
-	if appMeta.Config().CertManagerAsSubchart {
+	if appMeta.Config().CertManagerAsSubmodule {
 		tmpl = certTemplWithAnno
 	} else {
 		tmpl = certTempl
 	}
-	res := fmt.Sprintf(tmpl, appMeta.ChartName(), name, string(spec))
+	res := fmt.Sprintf(tmpl, appMeta.ModuleName(), name, string(spec))
 	return true, &certResult{
 		name: name,
 		data: []byte(res),

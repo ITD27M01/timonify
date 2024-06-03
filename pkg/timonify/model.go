@@ -31,23 +31,23 @@ type Template interface {
 	ObjectLabel() ast.Label
 }
 
-// Output - converts Template into helm chart on disk.
+// Output - converts Template into helm module on disk.
 type Output interface {
-	Create(chartName, chartDir string, Crd bool, templates []Template, filenames []string) error
+	Create(moduleName, moduleDir string, Crd bool, templates []Template, filenames []string) error
 }
 
-// AppMetadata handle common information about K8s objects in the chart.
+// AppMetadata handle common information about K8s objects in the module.
 type AppMetadata interface {
 	// Namespace returns app namespace.
 	Namespace() string
-	// ChartName returns chart name
-	ChartName() string
+	// ModuleName returns module name
+	ModuleName() string
 	// TemplatedName converts object name to templated Helm name.
-	// Example: 	"my-app-service1"	-> "{{ include "chart.fullname" . }}-service1"
-	//				"my-app-secret"		-> "{{ include "chart.fullname" . }}-secret"
+	// Example: 	"my-app-service1"	-> "{{ include "module.fullname" . }}-service1"
+	//				"my-app-secret"		-> "{{ include "module.fullname" . }}-secret"
 	//				etc...
 	TemplatedName(objName string) string
-	// TemplatedString converts a string to templated string with chart name.
+	// TemplatedString converts a string to templated string with module name.
 	TemplatedString(str string) string
 	// TrimName trims common prefix from object name if exists.
 	// We trim common prefix because helm already using release for this purpose.

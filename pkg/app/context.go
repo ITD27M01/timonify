@@ -48,12 +48,12 @@ func (c *appContext) Add(obj *unstructured.Unstructured, filename string) {
 	c.fileNames = append(c.fileNames, filename)
 }
 
-// CreateHelm creates helm chart from context k8s objects.
+// CreateHelm creates helm module from context k8s objects.
 func (c *appContext) CreateHelm(stop <-chan struct{}) error {
 	logrus.WithFields(logrus.Fields{
-		"ChartName": c.appMeta.ChartName(),
-		"Namespace": c.appMeta.Namespace(),
-	}).Info("creating a chart")
+		"ModuleName": c.appMeta.ModuleName(),
+		"Namespace":  c.appMeta.Namespace(),
+	}).Info("creating a module")
 	var templates []timonify.Template
 	var filenames []string
 	for i, obj := range c.objects {
@@ -75,7 +75,7 @@ func (c *appContext) CreateHelm(stop <-chan struct{}) error {
 		default:
 		}
 	}
-	return c.output.Create(c.config.ChartDir, c.config.ChartName, c.config.Crd, templates, filenames)
+	return c.output.Create(c.config.ModuleDir, c.config.ModuleName, c.config.Crd, templates, filenames)
 }
 
 func (c *appContext) process(obj *unstructured.Unstructured) (timonify.Template, error) {

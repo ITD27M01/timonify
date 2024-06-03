@@ -77,7 +77,7 @@ func (d daemonset) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 			return true, nil, err
 		}
 	}
-	selector := fmt.Sprintf(selectorTempl, matchLabels, appMeta.ChartName(), matchExpr)
+	selector := fmt.Sprintf(selectorTempl, matchLabels, appMeta.ModuleName(), matchExpr)
 	selector = strings.Trim(selector, " \n")
 	selector = string(cueformat.Indent([]byte(selector), 4))
 
@@ -85,7 +85,7 @@ func (d daemonset) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 	if err != nil {
 		return true, nil, err
 	}
-	podLabels += fmt.Sprintf("\n      {{- include \"%s.selectorLabels\" . | nindent 8 }}", appMeta.ChartName())
+	podLabels += fmt.Sprintf("\n      {{- include \"%s.selectorLabels\" . | nindent 8 }}", appMeta.ModuleName())
 
 	podAnnotations := ""
 	if len(dae.Spec.Template.ObjectMeta.Annotations) != 0 {

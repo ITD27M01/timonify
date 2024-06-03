@@ -79,7 +79,7 @@ func (r pdb) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		}
 	}
 
-	res := meta + fmt.Sprintf(pdbTempSpec, nameCamel, selector, appMeta.ChartName())
+	res := meta + fmt.Sprintf(pdbTempSpec, nameCamel, selector, appMeta.ModuleName())
 	return true, &result{
 		name:   name,
 		data:   res,

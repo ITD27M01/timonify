@@ -93,10 +93,10 @@ func initModuleDir(moduleDir, moduleName string, crd bool) error {
 
 func validateModuleName(name string) error {
 	if name == "" || len(name) > maxModuleNameLength {
-		return fmt.Errorf("chart name must be between 1 and %d characters", maxModuleNameLength)
+		return fmt.Errorf("module name must be between 1 and %d characters", maxModuleNameLength)
 	}
 	if !moduleName.MatchString(name) {
-		return fmt.Errorf("chart name must match the regular expression %q", moduleName.String())
+		return fmt.Errorf("module name must match the regular expression %q", moduleName.String())
 	}
 	return nil
 }

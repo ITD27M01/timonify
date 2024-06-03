@@ -76,7 +76,7 @@ func (c crd) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		if certName != "" {
 			certName = strings.TrimPrefix(certName, appMeta.Namespace()+"/")
 			certName = appMeta.TrimName(certName)
-			a["cert-manager.io/inject-ca-from"] = fmt.Sprintf(`{{ .Release.Namespace }}/{{ include "%[1]s.fullname" . }}-%[2]s`, appMeta.ChartName(), certName)
+			a["cert-manager.io/inject-ca-from"] = fmt.Sprintf(`{{ .Release.Namespace }}/{{ include "%[1]s.fullname" . }}-%[2]s`, appMeta.ModuleName(), certName)
 		}
 		annotations, err = cueformat.Marshal(map[string]interface{}{"annotations": a}, 2, true)
 		if err != nil {
@@ -90,7 +90,7 @@ func (c crd) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		delete(l, "app.kubernetes.io/instance")
 		delete(l, "app.kubernetes.io/version")
 		delete(l, "app.kubernetes.io/managed-by")
-		delete(l, "helm.sh/chart")
+		delete(l, "helm.sh/module")
 		if len(l) != 0 {
 			labels, err = cueformat.Marshal(l, 4, true)
 			if err != nil {
@@ -126,7 +126,7 @@ func (c crd) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 	specYaml = cueformat.Indent(specYaml, 2)
 	specYaml = bytes.TrimRight(specYaml, "\n ")
 
-	res := fmt.Sprintf(crdTeml, obj.GetName(), appMeta.ChartName(), annotations, labels, string(specYaml))
+	res := fmt.Sprintf(crdTeml, obj.GetName(), appMeta.ModuleName(), annotations, labels, string(specYaml))
 	res = strings.ReplaceAll(res, "\n\n", "\n")
 
 	return true, &result{

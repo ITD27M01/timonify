@@ -74,13 +74,13 @@ func (a *Service) Namespace() string {
 	return a.namespace
 }
 
-// ChartName returns ChartName.
-func (a *Service) ChartName() string {
-	return a.conf.ChartName
+// ModuleName returns ModuleName.
+func (a *Service) ModuleName() string {
+	return a.conf.ModuleName
 }
 
 // TemplatedName - converts object name to its Helm templated representation.
-// Adds chart fullname prefix from _helpers.tpl
+// Adds module fullname prefix from _helpers.tpl
 func (a *Service) TemplatedName(name string) string {
 	if a.conf.OriginalName {
 		return name

@@ -19,7 +19,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err = app.Start(os.Stdin, conf); err != nil {
-		logrus.WithError(err).Error("helmify finished with error")
+		logrus.WithError(err).Error("timonify finished with error")
 		os.Exit(1)
 	}
 }

@@ -131,7 +131,7 @@ func Test_pod_Process(t *testing.T) {
 							"value": "{{ quote .Values.kubernetesClusterDomain }}",
 						},
 					},
-					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Chart.AppVersion }}",
+					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Module.AppVersion }}",
 					"name":  "nginx", "ports": []interface{}{
 						map[string]interface{}{
 							"containerPort": int64(80),
@@ -174,7 +174,7 @@ func Test_pod_Process(t *testing.T) {
 							"value": "{{ quote .Values.kubernetesClusterDomain }}",
 						},
 					},
-					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Chart.AppVersion }}",
+					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Module.AppVersion }}",
 					"name":  "nginx", "ports": []interface{}{
 						map[string]interface{}{
 							"containerPort": int64(80),
@@ -213,7 +213,7 @@ func Test_pod_Process(t *testing.T) {
 							"value": "{{ quote .Values.kubernetesClusterDomain }}",
 						},
 					},
-					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Chart.AppVersion }}",
+					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Module.AppVersion }}",
 					"name":  "nginx", "ports": []interface{}{
 						map[string]interface{}{
 							"containerPort": int64(80),
@@ -252,7 +252,7 @@ func Test_pod_Process(t *testing.T) {
 							"value": "{{ quote .Values.kubernetesClusterDomain }}",
 						},
 					},
-					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Chart.AppVersion }}",
+					"image": "{{ .Values.nginx.nginx.image.repository }}:{{ .Values.nginx.nginx.image.tag | default .Module.AppVersion }}",
 					"name":  "nginx", "ports": []interface{}{
 						map[string]interface{}{
 							"containerPort": int64(80),

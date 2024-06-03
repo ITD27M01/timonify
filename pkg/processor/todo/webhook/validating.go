@@ -65,7 +65,7 @@ func (w vwh) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 	}
 	certName = strings.TrimPrefix(certName, appMeta.Namespace()+"/")
 	certName = appMeta.TrimName(certName)
-	res := fmt.Sprintf(vwhTempl, appMeta.ChartName(), name, certName, string(webhooks))
+	res := fmt.Sprintf(vwhTempl, appMeta.ModuleName(), name, certName, string(webhooks))
 	return true, &vwhResult{
 		name: name,
 		data: []byte(res),

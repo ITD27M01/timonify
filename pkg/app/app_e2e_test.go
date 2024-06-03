@@ -12,25 +12,24 @@ import (
 )
 
 const (
-	operatorChartName = "test-operator"
-	appChartName      = "test-app"
+	operatorModuleName = "test-operator"
+	appModuleName      = "test-app"
 )
 
 func TestOperator(t *testing.T) {
 	file, err := os.Open("../../test_data/k8s-operator-kustomize.output")
 	assert.NoError(t, err)
 
-	err = os.RemoveAll(operatorChartName)
 	objects := bufio.NewReader(file)
-	err = Start(objects, config.Config{ChartName: operatorChartName})
+	err = Start(objects, config.Config{ModuleName: operatorModuleName})
 	assert.NoError(t, err)
 
-	//t.Cleanup(func() {
-	//	err = os.RemoveAll(operatorChartName)
-	//	assert.NoError(t, err)
-	//})
+	t.Cleanup(func() {
+		err = os.RemoveAll(operatorModuleName)
+		assert.NoError(t, err)
+	})
 
-	timoniLint := exec.Command("timoni", "--namespace", "test-ns", "mod", "lint", operatorChartName)
+	timoniLint := exec.Command("timoni", "--namespace", "test-ns", "mod", "lint", operatorModuleName)
 	err = timoniLint.Run()
 	assert.NoError(t, err)
 }
@@ -40,18 +39,18 @@ func TestApp(t *testing.T) {
 	assert.NoError(t, err)
 
 	objects := bufio.NewReader(file)
-	err = Start(objects, config.Config{ChartName: appChartName})
+	err = Start(objects, config.Config{ModuleName: appModuleName})
 	assert.NoError(t, err)
 
 	t.Cleanup(func() {
-		err = os.RemoveAll(appChartName)
+		err = os.RemoveAll(appModuleName)
 		assert.NoError(t, err)
 	})
 
 	helmLint := action.NewLint()
 	helmLint.Strict = true
 	helmLint.Namespace = "test-ns"
-	result := helmLint.Run([]string{appChartName}, nil)
+	result := helmLint.Run([]string{appModuleName}, nil)
 	for _, err = range result.Errors {
 		assert.NoError(t, err)
 	}

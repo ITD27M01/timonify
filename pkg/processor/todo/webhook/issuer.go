@@ -57,12 +57,12 @@ func (i issuer) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstruct
 	spec = cueformat.Indent(spec, 2)
 	spec = bytes.TrimRight(spec, "\n ")
 	tmpl := ""
-	if appMeta.Config().CertManagerAsSubchart {
+	if appMeta.Config().CertManagerAsSubmodule {
 		tmpl = issuerTemplWithAnno
 	} else {
 		tmpl = issuerTempl
 	}
-	res := fmt.Sprintf(tmpl, appMeta.ChartName(), name, string(spec))
+	res := fmt.Sprintf(tmpl, appMeta.ModuleName(), name, string(spec))
 	return true, &issResult{
 		name: name,
 		data: []byte(res),

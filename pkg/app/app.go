@@ -17,7 +17,7 @@ import (
 	"github.com/syndicut/timonify/pkg/timoni"
 )
 
-// Start - application entrypoint for processing input to a Helm chart.
+// Start - application entrypoint for processing input to a Helm module.
 func Start(stdin io.Reader, config config.Config) error {
 	err := config.Validate()
 	if err != nil {

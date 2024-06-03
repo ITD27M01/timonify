@@ -48,8 +48,8 @@ type output struct{}
 //	└── README.md # Module documentation
 //
 // Overwrites existing values.cue and templates in templates dir on every run.
-func (o output) Create(moduleDir, chartName string, crd bool, templates []timonify.Template, filenames []string) error {
-	err := initModuleDir(moduleDir, chartName, crd)
+func (o output) Create(moduleDir, moduleName string, crd bool, templates []timonify.Template, filenames []string) error {
+	err := initModuleDir(moduleDir, moduleName, crd)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (o output) Create(moduleDir, chartName string, crd bool, templates []timoni
 			return err
 		}
 	}
-	cDir := filepath.Join(moduleDir, chartName)
+	cDir := filepath.Join(moduleDir, moduleName)
 	for filename, tpls := range files {
 		err = overwriteTemplateFile(filename, cDir, tpls)
 		if err != nil {
@@ -86,9 +86,9 @@ func (o output) Create(moduleDir, chartName string, crd bool, templates []timoni
 	return nil
 }
 
-func overwriteTemplateFile(filename, chartDir string, templates []timonify.Template) error {
+func overwriteTemplateFile(filename, moduleDir string, templates []timonify.Template) error {
 	subdir := "templates"
-	file := filepath.Join(chartDir, subdir, filename)
+	file := filepath.Join(moduleDir, subdir, filename)
 	f, err := os.OpenFile(file, os.O_APPEND|os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("%w: unable to open %s", err, file)
@@ -111,13 +111,13 @@ func overwriteTemplateFile(filename, chartDir string, templates []timonify.Templ
 	return nil
 }
 
-func overwriteValuesFile(chartDir string, values *timonify.Values) error {
+func overwriteValuesFile(moduleDir string, values *timonify.Values) error {
 	res, err := cueformat.Marshal(values.Values, 0, true)
 	if err != nil {
 		return fmt.Errorf("%w: unable to write marshal values.cue", err)
 	}
 
-	file := filepath.Join(chartDir, "values.cue")
+	file := filepath.Join(moduleDir, "values.cue")
 	err = os.WriteFile(file, []byte(fmt.Sprintf(defaultValues, res)), 0600)
 	if err != nil {
 		return fmt.Errorf("%w: unable to write values.cue", err)
@@ -126,7 +126,7 @@ func overwriteValuesFile(chartDir string, values *timonify.Values) error {
 	return nil
 }
 
-func overwriteConfigFile(chartDir string, values *timonify.Values, files map[string][]timonify.Template) error {
+func overwriteConfigFile(moduleDir string, values *timonify.Values, files map[string][]timonify.Template) error {
 	objectsNode := ast.NewStruct()
 	for _, templates := range files {
 		for _, t := range templates {
@@ -150,7 +150,7 @@ func overwriteConfigFile(chartDir string, values *timonify.Values, files map[str
 		}
 	}
 
-	file := filepath.Join(chartDir, "templates", "config.cue")
+	file := filepath.Join(moduleDir, "templates", "config.cue")
 	b, err := format.Node(defaultConfig(objectsNode, values.Config.Elts...))
 	if err != nil {
 		return fmt.Errorf("%w: unable to format config.cue", err)

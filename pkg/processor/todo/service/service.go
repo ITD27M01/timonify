@@ -95,7 +95,7 @@ func (r svc) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		ports[i] = pMap
 	}
 	_ = unstructured.SetNestedSlice(values, ports, shortNameCamel, "ports")
-	res := meta + fmt.Sprintf(svcTempSpec, shortNameCamel, selector, appMeta.ChartName())
+	res := meta + fmt.Sprintf(svcTempSpec, shortNameCamel, selector, appMeta.ModuleName())
 	return true, &result{
 		name:   shortName,
 		data:   res,

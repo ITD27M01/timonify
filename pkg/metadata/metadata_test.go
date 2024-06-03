@@ -79,9 +79,9 @@ func Test_Service(t *testing.T) {
 		testSvc.Load(internal.TestNs)
 		assert.Equal(t, internal.TestNsName, testSvc.Namespace())
 	})
-	t.Run("get chart name", func(t *testing.T) {
-		testSvc := New(config.Config{ChartName: "name"})
-		assert.Equal(t, "name", testSvc.ChartName())
+	t.Run("get module name", func(t *testing.T) {
+		testSvc := New(config.Config{ModuleName: "name"})
+		assert.Equal(t, "name", testSvc.ModuleName())
 	})
 	t.Run("trim common prefix abc", func(t *testing.T) {
 		testSvc := New(config.Config{})
@@ -104,13 +104,13 @@ func Test_Service(t *testing.T) {
 		assert.Equal(t, "service", testSvc.TrimName("service"))
 	})
 	t.Run("template name", func(t *testing.T) {
-		testSvc := New(config.Config{ChartName: "chart-name"})
+		testSvc := New(config.Config{ModuleName: "module-name"})
 		testSvc.Load(createRes("abc", "ns"))
 		templated := testSvc.TemplatedName("abc")
-		assert.Equal(t, `{{ include "chart-name.fullname" . }}-abc`, templated)
+		assert.Equal(t, `{{ include "module-name.fullname" . }}-abc`, templated)
 	})
 	t.Run("template name: not process unknown name", func(t *testing.T) {
-		testSvc := New(config.Config{ChartName: "chart-name"})
+		testSvc := New(config.Config{ModuleName: "module-name"})
 		testSvc.Load(createRes("abc", "ns"))
 		assert.Equal(t, "qwe", testSvc.TemplatedName("qwe"))
 		assert.NotEqual(t, "abc", testSvc.TemplatedName("abc"))

@@ -8,7 +8,7 @@ import (
 
 func TestConfig_Validate(t *testing.T) {
 	type fields struct {
-		ChartName   string
+		ModuleName  string
 		Verbose     bool
 		VeryVerbose bool
 	}
@@ -17,16 +17,16 @@ func TestConfig_Validate(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		{name: "valid", fields: fields{ChartName: ""}, wantErr: false},
-		{name: "valid", fields: fields{ChartName: "my.chart123"}, wantErr: false},
-		{name: "valid", fields: fields{ChartName: "my-chart123"}, wantErr: false},
-		{name: "invalid", fields: fields{ChartName: "my_chart123"}, wantErr: true},
-		{name: "invalid", fields: fields{ChartName: "my char123t"}, wantErr: true},
+		{name: "valid", fields: fields{ModuleName: ""}, wantErr: false},
+		{name: "valid", fields: fields{ModuleName: "my.module123"}, wantErr: false},
+		{name: "valid", fields: fields{ModuleName: "my-module123"}, wantErr: false},
+		{name: "invalid", fields: fields{ModuleName: "my_module123"}, wantErr: true},
+		{name: "invalid", fields: fields{ModuleName: "my char123t"}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Config{
-				ChartName:   tt.fields.ChartName,
+				ModuleName:  tt.fields.ModuleName,
 				Verbose:     tt.fields.Verbose,
 				VeryVerbose: tt.fields.VeryVerbose,
 			}
@@ -35,16 +35,16 @@ func TestConfig_Validate(t *testing.T) {
 			}
 		})
 	}
-	t.Run("chart name not set", func(t *testing.T) {
+	t.Run("module name not set", func(t *testing.T) {
 		c := &Config{}
 		err := c.Validate()
 		assert.NoError(t, err)
-		assert.Equal(t, defaultChartName, c.ChartName)
+		assert.Equal(t, defaultModuleName, c.ModuleName)
 	})
-	t.Run("chart name set", func(t *testing.T) {
-		c := &Config{ChartName: "test"}
+	t.Run("module name set", func(t *testing.T) {
+		c := &Config{ModuleName: "test"}
 		err := c.Validate()
 		assert.NoError(t, err)
-		assert.Equal(t, "test", c.ChartName)
+		assert.Equal(t, "test", c.ModuleName)
 	})
 }
