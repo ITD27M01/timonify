@@ -8,7 +8,7 @@ import (
 	"cuelang.org/go/cue/parser"
 	"cuelang.org/go/cue/token"
 	"fmt"
-	"strings"
+	"strconv"
 )
 
 // Indent - adds indentation to given content.
@@ -22,7 +22,7 @@ func Indent(content []byte, n int) []byte {
 }
 
 // Marshal object to cue string with indentation.
-func Marshal(object interface{}, indent int) (string, error) {
+func Marshal(object interface{}, indent int, parse bool) (string, error) {
 	ctx := cuecontext.New()
 	objectValue := ctx.Encode(object)
 	if objectValue.Err() != nil {
@@ -30,8 +30,10 @@ func Marshal(object interface{}, indent int) (string, error) {
 	}
 	node := objectValue.Syntax()
 
-	if _, err := parseStringLits(node); err != nil {
-		return "", fmt.Errorf("%w: failed to parse string literals", err)
+	if parse {
+		if _, err := parseStringLits(node); err != nil {
+			return "", fmt.Errorf("%w: failed to parse string literals", err)
+		}
 	}
 	objectBytes, err := format.Node(node)
 	if err != nil {
@@ -95,6 +97,18 @@ func isStringLit(v ast.Expr) bool {
 }
 
 func parseStringLit(v *ast.BasicLit) (ast.Expr, error) {
-	value := strings.ReplaceAll(v.Value, `\\`, `\`)
+	value, err := strconv.Unquote(v.Value)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to unquote string", err)
+	}
 	return parser.ParseExpr("", value)
+}
+
+func MustParse(src string) ast.Expr {
+	expr, err := parser.ParseExpr("", []byte(src))
+	if err != nil {
+		// This should never happen and shows that something is wrong with the cue parsing
+		panic(fmt.Errorf("%w: failed to parse expression", err))
+	}
+	return expr
 }

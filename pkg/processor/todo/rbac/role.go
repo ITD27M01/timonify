@@ -60,14 +60,14 @@ func (r role) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructur
 		if existingAggRule.(map[string]interface{})["clusterRoleSelectors"] != nil {
 			aggRuleMap := map[string]interface{}{"aggregationRule": existingAggRule}
 
-			aggregationRule, err = cueformat.Marshal(aggRuleMap, 0)
+			aggregationRule, err = cueformat.Marshal(aggRuleMap, 0, true)
 			if err != nil {
 				return true, nil, err
 			}
 		}
 	}
 
-	rules, err := cueformat.Marshal(map[string]interface{}{"rules": obj.Object["rules"]}, 0)
+	rules, err := cueformat.Marshal(map[string]interface{}{"rules": obj.Object["rules"]}, 0, true)
 	if err != nil {
 		return true, nil, err
 	}

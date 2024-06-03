@@ -78,7 +78,7 @@ func (c crd) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 			certName = appMeta.TrimName(certName)
 			a["cert-manager.io/inject-ca-from"] = fmt.Sprintf(`{{ .Release.Namespace }}/{{ include "%[1]s.fullname" . }}-%[2]s`, appMeta.ChartName(), certName)
 		}
-		annotations, err = cueformat.Marshal(map[string]interface{}{"annotations": a}, 2)
+		annotations, err = cueformat.Marshal(map[string]interface{}{"annotations": a}, 2, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -92,7 +92,7 @@ func (c crd) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		delete(l, "app.kubernetes.io/managed-by")
 		delete(l, "helm.sh/chart")
 		if len(l) != 0 {
-			labels, err = cueformat.Marshal(l, 4)
+			labels, err = cueformat.Marshal(l, 4, true)
 			if err != nil {
 				return true, nil, err
 			}

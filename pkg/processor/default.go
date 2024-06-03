@@ -2,6 +2,8 @@ package processor
 
 import (
 	"cuelang.org/go/cue/ast"
+	"fmt"
+	"github.com/iancoleman/strcase"
 	"io"
 	"strings"
 
@@ -17,6 +19,14 @@ var nsGVK = schema.GroupVersionKind{
 	Version: "v1",
 	Kind:    "Namespace",
 }
+
+var defaultTmpl = `package templates
+
+%s: {
+	#config: #Config
+	%s
+}
+`
 
 // Default default processor for unknown resources.
 func Default() timonify.Processor {
@@ -37,7 +47,6 @@ func (d dft) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		"Name":       obj.GetName(),
 	}).Warn("Unsupported resource: using default processor.")
 	name := appMeta.TrimName(obj.GetName())
-	label := strings.ToLower(obj.GetKind())
 
 	meta, err := ProcessObjMeta(appMeta, obj)
 	if err != nil {
@@ -47,21 +56,19 @@ func (d dft) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 	delete(obj.Object, "kind")
 	delete(obj.Object, "metadata")
 
-	body, err := cueformat.Marshal(obj.Object, 0)
+	body, err := cueformat.Marshal(obj.Object, 0, false)
 	if err != nil {
 		return true, nil, err
 	}
 	return true, &defaultResult{
-		data:  []byte(meta + "\n" + body),
-		name:  name,
-		label: label,
+		data: []byte(meta + "\n" + body),
+		name: name,
 	}, nil
 }
 
 type defaultResult struct {
-	data  []byte
-	name  string
-	label string
+	data []byte
+	name string
 }
 
 func (r *defaultResult) Filename() string {
@@ -73,14 +80,14 @@ func (r *defaultResult) Values() *timonify.Values {
 }
 
 func (r *defaultResult) Write(writer io.Writer) error {
-	_, err := writer.Write(r.data)
+	_, err := writer.Write([]byte(fmt.Sprintf(defaultTmpl, r.ObjectType(), r.data)))
 	return err
 }
 
 func (r *defaultResult) ObjectType() ast.Expr {
-	return ast.NewIdent("_")
+	return ast.NewIdent("#" + strcase.ToCamel(r.name))
 }
 
 func (r *defaultResult) ObjectLabel() ast.Label {
-	return ast.NewIdent(r.label)
+	return ast.NewIdent(strings.ReplaceAll(r.name, "-", ""))
 }

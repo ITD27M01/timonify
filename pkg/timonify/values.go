@@ -2,6 +2,7 @@ package timonify
 
 import (
 	"cuelang.org/go/cue/ast"
+	"cuelang.org/go/cue/token"
 	"dario.cat/mergo"
 	"fmt"
 	"strings"
@@ -36,9 +37,9 @@ func (v *Values) Merge(values *Values) error {
 	return nil
 }
 
-func (v *Values) AddConfig(config ast.Expr, name ...string) error {
+func (v *Values) AddConfig(config ast.Expr, required bool, name ...string) error {
 	name = toCamelCase(name)
-	err := setNestedCueField(v.Config, config, name...)
+	err := setNestedCueField(v.Config, config, required, name...)
 	if err != nil {
 		return fmt.Errorf("%w: unable to set nested cue field: %v", err, name)
 	}
@@ -59,11 +60,14 @@ func (v *Values) Add(config ast.Expr, value interface{}, name ...string) (string
 		value = int64(val)
 	}
 
-	err := v.AddConfig(config, name...)
-	if err != nil {
-		return "", fmt.Errorf("%w: unable to set config value: %v", err, name)
+	if config != nil {
+		err := v.AddConfig(config, false, name...)
+		if err != nil {
+			return "", fmt.Errorf("%w: unable to set config value: %v", err, name)
+		}
 	}
 
+	var err error
 	switch value := value.(type) {
 	case []string:
 		err = unstructured.SetNestedStringSlice(v.Values, value, name...)
@@ -88,7 +92,7 @@ func (v *Values) Add(config ast.Expr, value interface{}, name ...string) (string
 }
 
 // setNestedCueField sets value inside ast.Node structure creating nested fields if needed from name
-func setNestedCueField(config ast.Node, value ast.Expr, name ...string) error {
+func setNestedCueField(config ast.Node, value ast.Expr, required bool, name ...string) error {
 	// Start from the config node
 	currentNode := config
 
@@ -99,6 +103,9 @@ func setNestedCueField(config ast.Node, value ast.Expr, name ...string) error {
 		if field == nil {
 			// If the field does not exist, create a new one
 			field = &ast.Field{Label: ast.NewIdent(n), Value: &ast.StructLit{}}
+			if required {
+				field.Constraint = token.NOT
+			}
 			// Add the new field to the current node
 			currentNode.(*ast.StructLit).Elts = append(currentNode.(*ast.StructLit).Elts, field)
 		}
@@ -110,6 +117,9 @@ func setNestedCueField(config ast.Node, value ast.Expr, name ...string) error {
 	lastField := findField(currentNode, name[len(name)-1])
 	if lastField == nil {
 		lastField = &ast.Field{Label: ast.NewIdent(name[len(name)-1]), Value: value}
+		if required {
+			lastField.Constraint = token.NOT
+		}
 		currentNode.(*ast.StructLit).Elts = append(currentNode.(*ast.StructLit).Elts, lastField)
 	} else {
 		lastField.Value = value

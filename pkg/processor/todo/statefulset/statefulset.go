@@ -121,7 +121,7 @@ func (d statefulset) Process(appMeta timonify.AppMetadata, obj *unstructured.Uns
 		return true, nil, err
 	}
 
-	spec, err := cueformat.Marshal(ssSpecMap, 2)
+	spec, err := cueformat.Marshal(ssSpecMap, 2, true)
 	if err != nil {
 		return true, nil, err
 	}

@@ -119,7 +119,7 @@ func (p cron) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructur
 		return true, nil, fmt.Errorf("%w: unable to template job spec", err)
 	}
 
-	specStr, err := cueformat.Marshal(map[string]interface{}{"spec": specMap}, 0)
+	specStr, err := cueformat.Marshal(map[string]interface{}{"spec": specMap}, 0, true)
 	if err != nil {
 		return true, nil, err
 	}

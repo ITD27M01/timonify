@@ -66,13 +66,13 @@ func (d daemonset) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 
 	name := appMeta.TrimName(obj.GetName())
 
-	matchLabels, err := cueformat.Marshal(map[string]interface{}{"matchLabels": dae.Spec.Selector.MatchLabels}, 0)
+	matchLabels, err := cueformat.Marshal(map[string]interface{}{"matchLabels": dae.Spec.Selector.MatchLabels}, 0, true)
 	if err != nil {
 		return true, nil, err
 	}
 	matchExpr := ""
 	if dae.Spec.Selector.MatchExpressions != nil {
-		matchExpr, err = cueformat.Marshal(map[string]interface{}{"matchExpressions": dae.Spec.Selector.MatchExpressions}, 0)
+		matchExpr, err = cueformat.Marshal(map[string]interface{}{"matchExpressions": dae.Spec.Selector.MatchExpressions}, 0, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -81,7 +81,7 @@ func (d daemonset) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 	selector = strings.Trim(selector, " \n")
 	selector = string(cueformat.Indent([]byte(selector), 4))
 
-	podLabels, err := cueformat.Marshal(dae.Spec.Template.ObjectMeta.Labels, 8)
+	podLabels, err := cueformat.Marshal(dae.Spec.Template.ObjectMeta.Labels, 8, true)
 	if err != nil {
 		return true, nil, err
 	}
@@ -89,7 +89,7 @@ func (d daemonset) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 
 	podAnnotations := ""
 	if len(dae.Spec.Template.ObjectMeta.Annotations) != 0 {
-		podAnnotations, err = cueformat.Marshal(map[string]interface{}{"annotations": dae.Spec.Template.ObjectMeta.Annotations}, 6)
+		podAnnotations, err = cueformat.Marshal(map[string]interface{}{"annotations": dae.Spec.Template.ObjectMeta.Annotations}, 6, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -107,7 +107,7 @@ func (d daemonset) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 		return true, nil, err
 	}
 
-	spec, err := cueformat.Marshal(specMap, 6)
+	spec, err := cueformat.Marshal(specMap, 6, true)
 	if err != nil {
 		return true, nil, err
 	}

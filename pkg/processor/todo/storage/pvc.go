@@ -91,7 +91,7 @@ func (p pvc) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 		}
 	}
 
-	spec, err := cueformat.Marshal(map[string]interface{}{"spec": specMap}, 0)
+	spec, err := cueformat.Marshal(map[string]interface{}{"spec": specMap}, 0, true)
 	if err != nil {
 		return true, nil, err
 	}

@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const nameTeml = `\(#config.metadata.name)-%s`
+const nameTeml = `#config.metadata.name + "-%s"`
 
 var nsGVK = schema.GroupVersionKind{
 	Group:   "",

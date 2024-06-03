@@ -10,6 +10,7 @@ import (
 	"github.com/syndicut/timonify/pkg/timonify"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 )
@@ -55,7 +56,7 @@ func (o output) Create(moduleDir, chartName string, crd bool, templates []timoni
 	// group templates into files
 	files := map[string][]timonify.Template{}
 	values := timonify.NewValues()
-	if _, err := values.Add(ast.NewIdent("string"), cluster.DefaultDomain, cluster.DomainKey); err != nil {
+	if _, err := values.Add(ast.NewIdent("string"), strconv.Quote(cluster.DefaultDomain), cluster.DomainKey); err != nil {
 		return fmt.Errorf("%w: unable to set domain value", err)
 	}
 	for i, template := range templates {
@@ -111,7 +112,7 @@ func overwriteTemplateFile(filename, chartDir string, templates []timonify.Templ
 }
 
 func overwriteValuesFile(chartDir string, values *timonify.Values) error {
-	res, err := cueformat.Marshal(values.Values, 0)
+	res, err := cueformat.Marshal(values.Values, 0, true)
 	if err != nil {
 		return fmt.Errorf("%w: unable to write marshal values.cue", err)
 	}

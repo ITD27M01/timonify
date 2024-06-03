@@ -2,8 +2,8 @@ package deployment
 
 import (
 	"cuelang.org/go/cue/ast"
-	"cuelang.org/go/cue/parser"
 	"fmt"
+	"github.com/syndicut/timonify/pkg/format"
 	"io"
 	"strings"
 	"text/template"
@@ -81,7 +81,7 @@ import (
 	}
 }`)
 
-const selectorTempl = `selector: matchLabels: #config.selector.labels & %[1]s
+const selectorTempl = `selector: matchLabels: %[1]s
 %[2]s`
 
 // New creates processor for k8s Deployment resource.
@@ -102,6 +102,7 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 	if err != nil {
 		return true, nil, fmt.Errorf("%w: unable to cast to deployment", err)
 	}
+	format.QuoteStringsInStruct(&depl)
 	meta, err := processor.ProcessObjMeta(appMeta, obj)
 	if err != nil {
 		return true, nil, err
@@ -120,7 +121,7 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 		return true, nil, err
 	}
 
-	matchLabels, err := cueformat.Marshal(depl.Spec.Selector.MatchLabels, 0)
+	matchLabels, err := cueformat.Marshal(depl.Spec.Selector.MatchLabels, 0, true)
 	if err != nil {
 		return true, nil, err
 	}
@@ -130,7 +131,7 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 			"selector": map[string]interface{}{
 				"matchExpressions": depl.Spec.Selector.MatchExpressions,
 			},
-		}, 4)
+		}, 4, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -139,15 +140,14 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 	selector = strings.Trim(selector, " \n")
 	selector = string(cueformat.Indent([]byte(selector), 4))
 
-	podLabels, err := cueformat.Marshal(depl.Spec.Template.ObjectMeta.Labels, 0)
+	podLabels, err := cueformat.Marshal(depl.Spec.Template.ObjectMeta.Labels, 0, true)
 	if err != nil {
 		return true, nil, err
 	}
-	podLabels = fmt.Sprintf("#config.selector.labels & %s", podLabels)
 
 	podAnnotations := ""
 	if len(depl.Spec.Template.ObjectMeta.Annotations) != 0 {
-		podAnnotations, err = cueformat.Marshal(map[string]interface{}{"annotations": depl.Spec.Template.ObjectMeta.Annotations}, 6)
+		podAnnotations, err = cueformat.Marshal(map[string]interface{}{"annotations": depl.Spec.Template.ObjectMeta.Annotations}, 6, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -165,7 +165,7 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 		return true, nil, err
 	}
 
-	spec, err := cueformat.Marshal(specMap, 6)
+	spec, err := cueformat.Marshal(specMap, 6, true)
 	if err != nil {
 		return true, nil, err
 	}
@@ -194,21 +194,11 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 	}, nil
 }
 
-func MustParse(src string) ast.Expr {
-	expr, err := parser.ParseExpr("", []byte(src))
-	if err != nil {
-		// This should never happen and shows that something is wrong with the cue parsing
-		panic(fmt.Errorf("%w: failed to parse expression", err))
-	}
-	return expr
-}
-
-var replicasSchema = MustParse("*1 | int & >0")
-
 func processReplicas(name string, deployment *appsv1.Deployment, values *timonify.Values) (string, error) {
 	if deployment.Spec.Replicas == nil {
 		return "", nil
 	}
+	replicasSchema := cueformat.MustParse("*1 | int & >0")
 	replicasTpl, err := values.Add(replicasSchema, int64(*deployment.Spec.Replicas), name, "replicas")
 	if err != nil {
 		return "", err
@@ -225,7 +215,7 @@ func processRevisionHistoryLimit(name string, deployment *appsv1.Deployment, val
 	if err != nil {
 		return "", err
 	}
-	revisionHistoryLimit, err := cueformat.Marshal(map[string]interface{}{"revisionHistoryLimit": revisionHistoryLimitTpl}, 2)
+	revisionHistoryLimit, err := cueformat.Marshal(map[string]interface{}{"revisionHistoryLimit": revisionHistoryLimitTpl}, 2, true)
 	if err != nil {
 		return "", err
 	}

@@ -53,13 +53,13 @@ func (d configMap) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 	}
 
 	if field, exists, _ := unstructured.NestedBool(obj.Object, "immutable"); exists {
-		immutable, err = cueformat.Marshal(map[string]interface{}{"immutable": field}, 0)
+		immutable, err = cueformat.Marshal(map[string]interface{}{"immutable": field}, 0, true)
 		if err != nil {
 			return true, nil, err
 		}
 	}
 	if field, exists, _ := unstructured.NestedStringMap(obj.Object, "binaryData"); exists {
-		binaryData, err = cueformat.Marshal(map[string]interface{}{"binaryData": field}, 0)
+		binaryData, err = cueformat.Marshal(map[string]interface{}{"binaryData": field}, 0, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -69,7 +69,7 @@ func (d configMap) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstr
 	var values timonify.Values
 	if field, exists, _ := unstructured.NestedStringMap(obj.Object, "data"); exists {
 		field, values = parseMapData(field, name)
-		data, err = cueformat.Marshal(map[string]interface{}{"data": field}, 0)
+		data, err = cueformat.Marshal(map[string]interface{}{"data": field}, 0, true)
 		if err != nil {
 			return true, nil, err
 		}

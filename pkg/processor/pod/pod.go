@@ -1,13 +1,14 @@
 package pod
 
 import (
-	"cuelang.org/go/cue/ast"
-	"cuelang.org/go/cue/token"
 	"fmt"
+	"strconv"
 	"strings"
 
+	"cuelang.org/go/cue/ast"
 	"github.com/iancoleman/strcase"
 	"github.com/syndicut/timonify/pkg/cluster"
+	cueformat "github.com/syndicut/timonify/pkg/cue"
 	securityContext "github.com/syndicut/timonify/pkg/processor/security-context"
 	"github.com/syndicut/timonify/pkg/timonify"
 	corev1 "k8s.io/api/core/v1"
@@ -67,7 +68,7 @@ func ProcessSpec(objName string, appMeta timonify.AppMetadata, spec corev1.PodSp
 
 	// process nodeSelector if presented:
 	if spec.NodeSelector != nil {
-		err = unstructured.SetNestedField(specMap, fmt.Sprintf(`\(#config.%s.nodeSelector)`, objName), "nodeSelector")
+		err = unstructured.SetNestedField(specMap, fmt.Sprintf(`#config.%s.nodeSelector`, objName), "nodeSelector")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -173,27 +174,42 @@ func processPodSpec(name string, appMeta timonify.AppMetadata, pod *corev1.PodSp
 }
 
 func processPodContainer(name string, appMeta timonify.AppMetadata, c corev1.Container, values *timonify.Values) (corev1.Container, error) {
-	index := strings.LastIndex(c.Image, ":")
-	if strings.Contains(c.Image, "@") && strings.Count(c.Image, ":") >= 2 {
+	image, err := strconv.Unquote(c.Image)
+	if err != nil {
+		return c, fmt.Errorf("%w: unable to unquote image", err)
+	}
+	index := strings.LastIndex(image, ":")
+	var isDigest bool
+	if strings.Contains(image, "@") && strings.Count(image, ":") >= 2 {
 		last := strings.LastIndex(c.Image, ":")
 		index = strings.LastIndex(c.Image[:last], ":")
+		isDigest = true
 	}
 	if index < 0 {
-		return c, fmt.Errorf("wrong image format: %q", c.Image)
+		return c, fmt.Errorf("wrong image format: %q", image)
 	}
-	repo, tag := c.Image[:index], c.Image[index+1:]
+	repo := image[:index]
+	var tag, digest string
+	if isDigest {
+		digest = image[index+1:]
+	} else {
+		tag = image[index+1:]
+	}
 	containerName := strcase.ToLowerCamel(c.Name)
 	c.Image = fmt.Sprintf("#config.%[1]s.%[2]s.image.reference", name, containerName)
 
-	if _, err := values.Add(ast.NewIdent("string"), repo, name, containerName, "image", "repository"); err != nil {
+	if _, err := values.Add(nil, strconv.Quote(repo), name, containerName, "image", "repository"); err != nil {
 		return c, fmt.Errorf("%w: unable to set deployment value field", err)
 	}
-	if _, err := values.Add(ast.NewIdent("string"), tag, name, containerName, "image", "tag"); err != nil {
+	if _, err := values.Add(nil, strconv.Quote(tag), name, containerName, "image", "tag"); err != nil {
+		return c, fmt.Errorf("%w: unable to set deployment value field", err)
+	}
+	if _, err := values.Add(nil, strconv.Quote(digest), name, containerName, "image", "digest"); err != nil {
 		return c, fmt.Errorf("%w: unable to set deployment value field", err)
 	}
 
 	// Image has a common timoni schema, so we override it here
-	err := values.AddConfig(ast.NewSel(ast.NewIdent("timoniv1"), "#Image"), name, containerName, "image")
+	err = values.AddConfig(ast.NewSel(ast.NewIdent("timoniv1"), "#Image"), true, name, containerName, "image")
 	if err != nil {
 		return c, fmt.Errorf("%w: unable to set image value field", err)
 	}
@@ -212,53 +228,28 @@ func processPodContainer(name string, appMeta timonify.AppMetadata, c corev1.Con
 		}
 	}
 	c.Env = append(c.Env, corev1.EnvVar{
-		Name:  cluster.DomainEnv,
+		Name:  strconv.Quote(cluster.DomainEnv),
 		Value: fmt.Sprintf("#config.%s", cluster.DomainKey),
 	})
 	for k, v := range c.Resources.Requests {
-		_, err = values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceList"), v.String(), name, containerName, "resources", "requests", k.String())
+		_, err = values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceList"), strconv.Quote(v.String()), name, containerName, "resources", "requests", k.String())
 		if err != nil {
 			return c, fmt.Errorf("%w: unable to set container resources value", err)
 		}
 	}
 	for k, v := range c.Resources.Limits {
-		_, err = values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceList"), v.String(), name, containerName, "resources", "limits", k.String())
+		_, err = values.Add(ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceList"), strconv.Quote(v.String()), name, containerName, "resources", "limits", k.String())
 		if err != nil {
 			return c, fmt.Errorf("%w: unable to set container resources value", err)
 		}
 	}
-	resourcesSchema := &ast.BinaryExpr{
-		Op: token.AND, // Represents the '&' operator
-		X:  ast.NewSel(ast.NewIdent("timoniv1"), "#ResourceRequirements"),
-		Y: &ast.StructLit{
-			Elts: []ast.Decl{
-				&ast.Field{
-					Label: ast.NewIdent("requests"),
-					Value: &ast.StructLit{
-						Elts: []ast.Decl{
-							&ast.Field{
-								Label: ast.NewIdent("cpu"),
-								Value: &ast.BinaryExpr{
-									Op: token.OR,
-									X:  &ast.BasicLit{Kind: token.STRING, Value: "\"10m\""},
-									Y:  ast.NewSel(ast.NewIdent("timoniv1"), "#CPUQuantity"),
-								},
-							},
-							&ast.Field{
-								Label: ast.NewIdent("memory"),
-								Value: &ast.BinaryExpr{
-									Op: token.OR,
-									X:  &ast.BasicLit{Kind: token.STRING, Value: "\"32Mi\""},
-									Y:  ast.NewSel(ast.NewIdent("timoniv1"), "#MemoryQuantity"),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	if err := values.AddConfig(resourcesSchema, name, containerName, "resources"); err != nil {
+	resourcesSchema := cueformat.MustParse(`timoniv1.#ResourceRequirements & {
+		requests: {
+			cpu:    *"10m" | timoniv1.#CPUQuantity
+			memory: *"32Mi" | timoniv1.#MemoryQuantity
+		}
+	}`)
+	if err := values.AddConfig(resourcesSchema, false, name, containerName, "resources"); err != nil {
 		return c, fmt.Errorf("%w: unable to add resources config value", err)
 	}
 

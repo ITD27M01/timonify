@@ -16,8 +16,8 @@ import (
 const metaTemplate = `apiVersion: "%[1]s"
 kind:       "%[2]s"
 metadata: {
-  name: "%[3]s"
-  labels: #config.metadata.labels & %[4]s
+  name: %[3]s
+  labels: #config.metadata.labels %[4]s
 %[5]s
 }`
 
@@ -67,14 +67,17 @@ func ProcessObjMeta(appMeta timonify.AppMetadata, obj *unstructured.Unstructured
 
 		// Since we delete labels above, it is possible that at this point there are no more labels.
 		if len(l) > 0 {
-			labels, err = cueformat.Marshal(l, 4)
+			labels, err = cueformat.Marshal(l, 4, false)
 			if err != nil {
 				return "", err
 			}
 		}
 	}
+	if labels != "" {
+		labels = "& " + labels
+	}
 	if len(obj.GetAnnotations()) != 0 {
-		annotations, err = cueformat.Marshal(map[string]interface{}{"annotations": obj.GetAnnotations()}, 2)
+		annotations, err = cueformat.Marshal(map[string]interface{}{"annotations": obj.GetAnnotations()}, 2, false)
 		if err != nil {
 			return "", err
 		}

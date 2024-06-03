@@ -53,7 +53,7 @@ func (r clusterRoleBinding) Process(appMeta timonify.AppMetadata, obj *unstructu
 
 	rb.RoleRef.Name = appMeta.TemplatedName(rb.RoleRef.Name)
 
-	roleRef, err := cueformat.Marshal(map[string]interface{}{"roleRef": &rb.RoleRef}, 0)
+	roleRef, err := cueformat.Marshal(map[string]interface{}{"roleRef": &rb.RoleRef}, 0, true)
 	if err != nil {
 		return true, nil, err
 	}
@@ -63,7 +63,7 @@ func (r clusterRoleBinding) Process(appMeta timonify.AppMetadata, obj *unstructu
 		s.Name = appMeta.TemplatedName(s.Name)
 		rb.Subjects[i] = s
 	}
-	subjects, err := cueformat.Marshal(map[string]interface{}{"subjects": &rb.Subjects}, 0)
+	subjects, err := cueformat.Marshal(map[string]interface{}{"subjects": &rb.Subjects}, 0, true)
 	if err != nil {
 		return true, nil, err
 	}

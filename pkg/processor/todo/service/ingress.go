@@ -46,7 +46,7 @@ func (r ingress) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstruc
 	}
 	name := appMeta.TrimName(obj.GetName())
 	processIngressSpec(appMeta, &ing.Spec)
-	spec, err := cueformat.Marshal(map[string]interface{}{"spec": &ing.Spec}, 0)
+	spec, err := cueformat.Marshal(map[string]interface{}{"spec": &ing.Spec}, 0, true)
 	if err != nil {
 		return true, nil, err
 	}

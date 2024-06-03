@@ -63,7 +63,7 @@ func (d secret) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstruct
 
 	secretType := string(sec.Type)
 	if secretType != "" {
-		secretType, err = cueformat.Marshal(map[string]interface{}{"type": secretType}, 0)
+		secretType, err = cueformat.Marshal(map[string]interface{}{"type": secretType}, 0, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -84,7 +84,7 @@ func (d secret) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstruct
 		templatedData[key] = templatedName
 	}
 	if len(templatedData) != 0 {
-		data, err = cueformat.Marshal(map[string]interface{}{"data": templatedData}, 0)
+		data, err = cueformat.Marshal(map[string]interface{}{"data": templatedData}, 0, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -105,7 +105,7 @@ func (d secret) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstruct
 		templatedData[key] = templatedName
 	}
 	if len(templatedData) != 0 {
-		stringData, err = cueformat.Marshal(map[string]interface{}{"stringData": templatedData}, 0)
+		stringData, err = cueformat.Marshal(map[string]interface{}{"stringData": templatedData}, 0, true)
 		if err != nil {
 			return true, nil, err
 		}
