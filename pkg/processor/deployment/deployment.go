@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"bytes"
 	"cuelang.org/go/cue/ast"
 	"fmt"
 	"github.com/syndicut/timonify/pkg/format"
@@ -10,8 +11,9 @@ import (
 
 	"github.com/syndicut/timonify/pkg/processor/pod"
 
+	cueformat "cuelang.org/go/cue/format"
 	"github.com/iancoleman/strcase"
-	cueformat "github.com/syndicut/timonify/pkg/cue"
+	"github.com/syndicut/timonify/pkg/cue"
 	"github.com/syndicut/timonify/pkg/processor"
 	"github.com/syndicut/timonify/pkg/timonify"
 	appsv1 "k8s.io/api/apps/v1"
@@ -121,13 +123,13 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 		return true, nil, err
 	}
 
-	matchLabels, err := cueformat.Marshal(depl.Spec.Selector.MatchLabels, 0, true)
+	matchLabels, err := cue.Marshal(depl.Spec.Selector.MatchLabels, 0, true)
 	if err != nil {
 		return true, nil, err
 	}
 	matchExpr := ""
 	if depl.Spec.Selector.MatchExpressions != nil {
-		matchExpr, err = cueformat.Marshal(map[string]interface{}{
+		matchExpr, err = cue.Marshal(map[string]interface{}{
 			"selector": map[string]interface{}{
 				"matchExpressions": depl.Spec.Selector.MatchExpressions,
 			},
@@ -138,16 +140,16 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 	}
 	selector := fmt.Sprintf(selectorTempl, matchLabels, matchExpr)
 	selector = strings.Trim(selector, " \n")
-	selector = string(cueformat.Indent([]byte(selector), 4))
+	selector = string(cue.Indent([]byte(selector), 4))
 
-	podLabels, err := cueformat.Marshal(depl.Spec.Template.ObjectMeta.Labels, 0, true)
+	podLabels, err := cue.Marshal(depl.Spec.Template.ObjectMeta.Labels, 0, true)
 	if err != nil {
 		return true, nil, err
 	}
 
 	podAnnotations := ""
 	if len(depl.Spec.Template.ObjectMeta.Annotations) != 0 {
-		podAnnotations, err = cueformat.Marshal(map[string]interface{}{"annotations": depl.Spec.Template.ObjectMeta.Annotations}, 6, true)
+		podAnnotations, err = cue.Marshal(map[string]interface{}{"annotations": depl.Spec.Template.ObjectMeta.Annotations}, 6, true)
 		if err != nil {
 			return true, nil, err
 		}
@@ -165,7 +167,7 @@ func (d deployment) Process(appMeta timonify.AppMetadata, obj *unstructured.Unst
 		return true, nil, err
 	}
 
-	spec, err := cueformat.Marshal(specMap, 6, true)
+	spec, err := cue.Marshal(specMap, 6, true)
 	if err != nil {
 		return true, nil, err
 	}
@@ -198,7 +200,7 @@ func processReplicas(name string, deployment *appsv1.Deployment, values *timonif
 	if deployment.Spec.Replicas == nil {
 		return "", nil
 	}
-	replicasSchema := cueformat.MustParse("*1 | int & >0")
+	replicasSchema := cue.MustParse("*1 | int & >0")
 	replicasTpl, err := values.Add(replicasSchema, int64(*deployment.Spec.Replicas), name, "replicas")
 	if err != nil {
 		return "", err
@@ -215,7 +217,7 @@ func processRevisionHistoryLimit(name string, deployment *appsv1.Deployment, val
 	if err != nil {
 		return "", err
 	}
-	revisionHistoryLimit, err := cueformat.Marshal(map[string]interface{}{"revisionHistoryLimit": revisionHistoryLimitTpl}, 2, true)
+	revisionHistoryLimit, err := cue.Marshal(map[string]interface{}{"revisionHistoryLimit": revisionHistoryLimitTpl}, 2, true)
 	if err != nil {
 		return "", err
 	}
@@ -245,17 +247,16 @@ func (r *result) Values() *timonify.Values {
 }
 
 func (r *result) Write(writer io.Writer) error {
-	//var buf bytes.Buffer
-	//if err := deploymentTempl.Execute(&buf, r.data); err != nil {
-	//	return fmt.Errorf("failed to execute template: %w", err)
-	//}
-	//formatted, err := format.Source(buf.Bytes())
-	//if err != nil {
-	//	return fmt.Errorf("failed to format cue: %w", err)
-	//}
-	//_, err = writer.Write(formatted)
-	//return err
-	return deploymentTempl.Execute(writer, r.data)
+	var buf bytes.Buffer
+	if err := deploymentTempl.Execute(&buf, r.data); err != nil {
+		return fmt.Errorf("failed to execute template: %w", err)
+	}
+	formatted, err := cueformat.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to format cue: %w", err)
+	}
+	_, err = writer.Write(formatted)
+	return err
 }
 
 func (r *result) ObjectType() ast.Expr {

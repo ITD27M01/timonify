@@ -2,13 +2,14 @@ package processor
 
 import (
 	"cuelang.org/go/cue/ast"
+	cueformat "cuelang.org/go/cue/format"
 	"fmt"
 	"github.com/iancoleman/strcase"
 	"io"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	cueformat "github.com/syndicut/timonify/pkg/cue"
+	"github.com/syndicut/timonify/pkg/cue"
 	"github.com/syndicut/timonify/pkg/timonify"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -56,10 +57,11 @@ func (d dft) Process(appMeta timonify.AppMetadata, obj *unstructured.Unstructure
 	delete(obj.Object, "kind")
 	delete(obj.Object, "metadata")
 
-	body, err := cueformat.Marshal(obj.Object, 0, false)
+	body, err := cue.Marshal(obj.Object, 0, false)
 	if err != nil {
 		return true, nil, err
 	}
+	body = strings.Trim(body, "{}")
 	return true, &defaultResult{
 		data: []byte(meta + "\n" + body),
 		name: name,
@@ -80,7 +82,11 @@ func (r *defaultResult) Values() *timonify.Values {
 }
 
 func (r *defaultResult) Write(writer io.Writer) error {
-	_, err := writer.Write([]byte(fmt.Sprintf(defaultTmpl, r.ObjectType(), r.data)))
+	formatted, err := cueformat.Source([]byte(fmt.Sprintf(defaultTmpl, r.ObjectType(), r.data)))
+	if err != nil {
+		return fmt.Errorf("failed to format cue: %w", err)
+	}
+	_, err = writer.Write(formatted)
 	return err
 }
 
