@@ -2,10 +2,10 @@
 
 CLI that creates [Timoni](https://timoni.sh) modules from kubernetes manifests.
 
-Timonify reads a list of [supported k8s objects](#status) from stdin and converts it to a helm chart.
-Designed to generate charts for [k8s operators](#integrate-to-your-operator-sdkkubebuilder-project) but not limited to.
+Timonify reads a list of [supported k8s objects](#status) from stdin and converts it to a timoni module.
+Designed to generate modules for [k8s operators](#integrate-to-your-operator-sdkkubebuilder-project) but not limited to.
 
-Literally based on [Helmify](https://github.com/arttor/timonify) code.
+Literally based on [Helmify](https://github.com/arttor/helmify) code.
 
 Currently under heavy development, expect things to break =)
 
